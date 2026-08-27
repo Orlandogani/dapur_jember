@@ -1,0 +1,19 @@
+# Project detekt overrides. Layered on top of detekt's default config
+# (buildUponDefaultConfig = true in the quality convention plugin).
+
+build:
+  maxIssues: 0
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    active: false
+  UnusedPrivateMember:
+    active: false
+
+complexity:
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
