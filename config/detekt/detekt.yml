@@ -18,3 +18,4 @@ style:
 complexity:
   LongParameterList:
     ignoreAnnotated: ['Composable']
+    excludes: ['**/entity/**', '**/test/**', '**/androidTest/**']

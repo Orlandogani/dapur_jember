@@ -13,6 +13,8 @@ max_line_length = 120
 ktlint_code_style = intellij_idea
 ktlint_standard_no-wildcard-imports = disabled
 ktlint_function_naming_ignore_when_annotated_with = Composable
+# Contentious multi-line-signature formatting rule; we keep builder params one-per-line.
+ktlint_standard_function-signature = disabled
 
 [*.{yml,yaml,json}]
 indent_size = 2
