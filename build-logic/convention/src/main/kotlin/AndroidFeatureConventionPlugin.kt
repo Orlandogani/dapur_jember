@@ -22,11 +22,9 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
             add("implementation", libs.findLibrary("androidx-navigation-compose").get())
             add("implementation", libs.findLibrary("androidx-hilt-navigation-compose").get())
 
+            // :core:testing api-exposes JUnit5, Turbine, MockK, coroutines-test, Robolectric.
             add("testImplementation", project(":core:testing"))
-            add("testImplementation", libs.findLibrary("junit-jupiter").get())
             add("testRuntimeOnly", libs.findLibrary("junit-platform-launcher").get())
-            add("testImplementation", libs.findLibrary("turbine").get())
-            add("testImplementation", libs.findLibrary("kotlinx-coroutines-test").get())
         }
 
         tasks.withType<Test>().configureEach {

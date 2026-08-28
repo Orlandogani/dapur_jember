@@ -1,4 +1,4 @@
-package com.leanecorps.dapurjember.core.data.database
+package com.leanecorps.dapurjember.core.testing.database
 
 import com.leanecorps.dapurjember.core.data.database.entity.CategoryEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ChangeLogEntity
@@ -9,10 +9,10 @@ import com.leanecorps.dapurjember.core.data.database.entity.ModifierEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ModifierGroupEntity
 import com.leanecorps.dapurjember.core.data.database.entity.StoreProfileEntity
 
-/** Test-data builders. Defaults are valid; override only what a test cares about. */
-internal object Fixtures {
+/** Test-data builders for the menu/config entities. Defaults are valid; override what a test cares about. */
+object MenuEntityFixtures {
 
-    private const val DEVICE = "test-device"
+    const val DEVICE: String = "test-device"
 
     fun category(
         id: String = "cat-1",
