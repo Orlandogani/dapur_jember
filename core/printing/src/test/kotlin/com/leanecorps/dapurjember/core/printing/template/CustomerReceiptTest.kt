@@ -1,5 +1,9 @@
 package com.leanecorps.dapurjember.core.printing.template
 
+import com.leanecorps.dapurjember.core.domain.printing.ReceiptData
+import com.leanecorps.dapurjember.core.domain.printing.ReceiptItemLine
+import com.leanecorps.dapurjember.core.domain.printing.ReceiptModifierLine
+import com.leanecorps.dapurjember.core.domain.printing.ReceiptPaymentLine
 import com.leanecorps.dapurjember.core.printing.PaperWidth
 import com.leanecorps.dapurjember.core.printing.escpos.EscPosDecoder
 import org.junit.jupiter.api.Assertions.assertFalse

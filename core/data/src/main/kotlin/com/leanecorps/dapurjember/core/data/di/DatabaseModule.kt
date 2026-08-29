@@ -22,6 +22,8 @@ import com.leanecorps.dapurjember.core.data.database.dao.OrderDao
 import com.leanecorps.dapurjember.core.data.database.dao.OrderLineDao
 import com.leanecorps.dapurjember.core.data.database.dao.OrderLineModifierDao
 import com.leanecorps.dapurjember.core.data.database.dao.PaymentDao
+import com.leanecorps.dapurjember.core.data.database.dao.PrintJobDao
+import com.leanecorps.dapurjember.core.data.database.dao.PrinterConfigDao
 import com.leanecorps.dapurjember.core.data.database.dao.RecipeLineDao
 import com.leanecorps.dapurjember.core.data.database.dao.ShiftDao
 import com.leanecorps.dapurjember.core.data.database.dao.StaffDao
@@ -135,4 +137,10 @@ object DatabaseModule {
 
     @Provides
     fun provideStockMovementDao(db: DapurJemberDatabase): StockMovementDao = db.stockMovementDao()
+
+    @Provides
+    fun providePrintJobDao(db: DapurJemberDatabase): PrintJobDao = db.printJobDao()
+
+    @Provides
+    fun providePrinterConfigDao(db: DapurJemberDatabase): PrinterConfigDao = db.printerConfigDao()
 }

@@ -2,48 +2,11 @@ package com.leanecorps.dapurjember.core.printing.template
 
 import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.common.money.formatAmount
+import com.leanecorps.dapurjember.core.domain.printing.ReceiptData
+import com.leanecorps.dapurjember.core.domain.printing.ReceiptItemLine
 import com.leanecorps.dapurjember.core.printing.PaperWidth
 import com.leanecorps.dapurjember.core.printing.escpos.Alignment
 import com.leanecorps.dapurjember.core.printing.escpos.EscPosBuilder
-
-/**
- * Input for a customer receipt. All money is minor units; the template formats with
- * [currencyMinorUnits] and shows [currencyCode] once. Caller supplies the denormalised
- * order totals verbatim (architecture §5.2 — a historical receipt must reproduce byte for
- * byte, so never recompute here).
- */
-data class ReceiptData(
-    val headerLines: List<String>,
-    val orderNumber: String,
-    val businessDay: String,
-    val tableLabel: String?,
-    val printedAt: String,
-    val serverName: String,
-    val lines: List<ReceiptItemLine>,
-    val subtotalMinor: Long,
-    val discountMinor: Long,
-    val serviceChargeMinor: Long,
-    val taxMinor: Long,
-    val roundingMinor: Long,
-    val totalMinor: Long,
-    val payments: List<ReceiptPaymentLine>,
-    val changeMinor: Long,
-    val currencyCode: String,
-    val currencyMinorUnits: Int,
-    val footerLines: List<String>,
-    val reprint: Boolean = false,
-)
-
-data class ReceiptItemLine(
-    val quantity: Int,
-    val name: String,
-    val lineTotalMinor: Long,
-    val modifiers: List<ReceiptModifierLine> = emptyList(),
-)
-
-data class ReceiptModifierLine(val name: String, val priceDeltaMinor: Long)
-
-data class ReceiptPaymentLine(val method: String, val amountMinor: Long)
 
 fun renderCustomerReceipt(data: ReceiptData, width: PaperWidth): ByteArray {
     val b = EscPosBuilder(width.columns)

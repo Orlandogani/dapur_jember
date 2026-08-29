@@ -1,5 +1,7 @@
 package com.leanecorps.dapurjember.core.printing.template
 
+import com.leanecorps.dapurjember.core.domain.printing.KitchenTicketData
+import com.leanecorps.dapurjember.core.domain.printing.KitchenTicketLine
 import com.leanecorps.dapurjember.core.printing.PaperWidth
 import com.leanecorps.dapurjember.core.printing.escpos.EscPos
 import com.leanecorps.dapurjember.core.printing.escpos.EscPosDecoder
