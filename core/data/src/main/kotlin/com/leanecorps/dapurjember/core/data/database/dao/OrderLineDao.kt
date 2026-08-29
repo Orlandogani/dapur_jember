@@ -20,6 +20,15 @@ interface OrderLineDao {
     )
     fun observeForOrder(orderId: String): Flow<List<OrderLineEntity>>
 
+    @Query(
+        "SELECT * FROM order_line WHERE order_id = :orderId AND deleted_at IS NULL " +
+            "ORDER BY course, created_at",
+    )
+    suspend fun getForOrder(orderId: String): List<OrderLineEntity>
+
+    @Query("SELECT * FROM order_line WHERE id = :id AND deleted_at IS NULL")
+    suspend fun getById(id: String): OrderLineEntity?
+
     /** FR-O3: lines not yet printed to the kitchen. `send` prints exactly these. */
     @Query(
         "SELECT * FROM order_line WHERE order_id = :orderId AND sent_at IS NULL " +

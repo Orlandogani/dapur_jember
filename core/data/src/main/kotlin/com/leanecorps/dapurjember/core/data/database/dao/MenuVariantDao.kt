@@ -24,6 +24,14 @@ interface MenuVariantDao {
     suspend fun getById(id: String): MenuVariantEntity?
 
     @Query(
+        "SELECT v.* FROM menu_variant v " +
+            "INNER JOIN menu_item i ON i.id = v.menu_item_id " +
+            "WHERE i.category_id = :categoryId AND v.deleted_at IS NULL AND i.deleted_at IS NULL " +
+            "ORDER BY v.sort_order, v.name",
+    )
+    fun observeForCategory(categoryId: String): Flow<List<MenuVariantEntity>>
+
+    @Query(
         "UPDATE menu_variant SET deleted_at = :deletedAt, updated_at = :deletedAt, " +
             "revision = revision + 1 WHERE id = :id AND deleted_at IS NULL",
     )

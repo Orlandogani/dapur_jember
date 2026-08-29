@@ -18,6 +18,12 @@ interface CashMovementDao {
     fun observeForShift(shiftId: String): Flow<List<CashMovementEntity>>
 
     @Query(
+        "SELECT COALESCE(SUM(amount_minor), 0) FROM cash_movement " +
+            "WHERE shift_id = :shiftId AND direction = :direction AND deleted_at IS NULL",
+    )
+    suspend fun totalForShift(shiftId: String, direction: String): Long
+
+    @Query(
         "UPDATE cash_movement SET deleted_at = :deletedAt, updated_at = :deletedAt, " +
             "revision = revision + 1 WHERE id = :id AND deleted_at IS NULL",
     )

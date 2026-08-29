@@ -20,4 +20,18 @@ interface ShiftDao {
 
     @Query("SELECT * FROM shift WHERE id = :id AND deleted_at IS NULL")
     suspend fun getById(id: String): ShiftEntity?
+
+    @Query(
+        "UPDATE shift SET closed_at = :closedAt, closed_by = :closedBy, counted_cash_minor = :countedCash, " +
+            "expected_cash_minor = :expectedCash, variance_minor = :variance, updated_at = :closedAt, " +
+            "revision = revision + 1 WHERE id = :id AND closed_at IS NULL",
+    )
+    suspend fun close(
+        id: String,
+        closedAt: Long,
+        closedBy: String,
+        countedCash: Long,
+        expectedCash: Long,
+        variance: Long,
+    )
 }

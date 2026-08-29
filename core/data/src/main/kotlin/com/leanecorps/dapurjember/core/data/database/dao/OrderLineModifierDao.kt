@@ -19,4 +19,14 @@ interface OrderLineModifierDao {
             "ORDER BY name_snapshot",
     )
     fun observeForLine(lineId: String): Flow<List<OrderLineModifierEntity>>
+
+    @Query("SELECT * FROM order_line_modifier WHERE order_line_id = :lineId AND deleted_at IS NULL")
+    suspend fun getForLine(lineId: String): List<OrderLineModifierEntity>
+
+    @Query(
+        "SELECT olm.* FROM order_line_modifier olm " +
+            "INNER JOIN order_line ol ON ol.id = olm.order_line_id " +
+            "WHERE ol.order_id = :orderId AND olm.deleted_at IS NULL AND ol.deleted_at IS NULL",
+    )
+    fun observeForOrder(orderId: String): Flow<List<OrderLineModifierEntity>>
 }

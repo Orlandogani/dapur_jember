@@ -26,6 +26,9 @@ interface MenuItemDao {
     @Query("SELECT * FROM menu_item WHERE id = :id AND deleted_at IS NULL")
     suspend fun getById(id: String): MenuItemEntity?
 
+    @Query("SELECT * FROM menu_item WHERE id = :id AND deleted_at IS NULL")
+    fun observeById(id: String): Flow<MenuItemEntity?>
+
     @Query(
         "UPDATE menu_item SET deleted_at = :deletedAt, updated_at = :deletedAt, " +
             "revision = revision + 1 WHERE id = :id AND deleted_at IS NULL",

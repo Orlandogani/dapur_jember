@@ -26,9 +26,38 @@ interface OrderDao {
     @Query("SELECT * FROM orders WHERE business_day = :businessDay AND deleted_at IS NULL ORDER BY opened_at")
     fun observeForBusinessDay(businessDay: String): Flow<List<OrderEntity>>
 
+    @Query("SELECT COUNT(*) FROM orders WHERE business_day = :businessDay AND deleted_at IS NULL")
+    suspend fun countForBusinessDay(businessDay: String): Int
+
+    @Query(
+        "SELECT id FROM orders WHERE shift_id = :shiftId AND deleted_at IS NULL " +
+            "AND state NOT IN ('PAID', 'CLOSED', 'VOIDED')",
+    )
+    suspend fun unpaidOrderIdsForShift(shiftId: String): List<String>
+
     @Query(
         "UPDATE orders SET state = :state, updated_at = :updatedAt, revision = revision + 1 " +
             "WHERE id = :id AND deleted_at IS NULL",
     )
     suspend fun updateState(id: String, state: String, updatedAt: Long)
+
+    @Query(
+        "UPDATE orders SET subtotal_minor = :subtotal, discount_minor = :discount, " +
+            "service_charge_minor = :serviceCharge, tax_minor = :tax, rounding_minor = :rounding, " +
+            "total_minor = :total, updated_at = :updatedAt, revision = revision + 1 " +
+            "WHERE id = :id AND deleted_at IS NULL",
+    )
+    suspend fun updateTotals(
+        id: String,
+        subtotal: Long,
+        discount: Long,
+        serviceCharge: Long,
+        tax: Long,
+        rounding: Long,
+        total: Long,
+        updatedAt: Long,
+    )
+
+    @Query("UPDATE orders SET sent_at = :sentAt, updated_at = :sentAt, revision = revision + 1 WHERE id = :id")
+    suspend fun markSent(id: String, sentAt: Long)
 }

@@ -20,6 +20,9 @@ interface StaffDao {
     @Query("SELECT * FROM staff WHERE id = :id AND deleted_at IS NULL")
     suspend fun getById(id: String): StaffEntity?
 
+    @Query("SELECT COUNT(*) FROM staff WHERE deleted_at IS NULL")
+    suspend fun count(): Int
+
     @Query(
         "UPDATE staff SET deleted_at = :deletedAt, updated_at = :deletedAt, " +
             "revision = revision + 1 WHERE id = :id AND deleted_at IS NULL",

@@ -14,8 +14,14 @@ interface DiscountDao {
     @Query("SELECT * FROM discount WHERE order_id = :orderId AND deleted_at IS NULL ORDER BY created_at")
     fun observeForOrder(orderId: String): Flow<List<DiscountEntity>>
 
+    @Query("SELECT * FROM discount WHERE order_id = :orderId AND deleted_at IS NULL ORDER BY created_at")
+    suspend fun getForOrder(orderId: String): List<DiscountEntity>
+
     @Query("SELECT * FROM discount WHERE order_line_id = :lineId AND deleted_at IS NULL ORDER BY created_at")
     fun observeForLine(lineId: String): Flow<List<DiscountEntity>>
+
+    @Query("SELECT * FROM discount WHERE id = :id AND deleted_at IS NULL")
+    suspend fun getById(id: String): DiscountEntity?
 
     @Query(
         "UPDATE discount SET deleted_at = :deletedAt, updated_at = :deletedAt, " +
