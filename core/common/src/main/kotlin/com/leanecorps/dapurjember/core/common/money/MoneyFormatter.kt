@@ -17,7 +17,15 @@ import java.util.Locale
  * @param currencyCode ISO 4217 code, used verbatim as the prefix.
  * @param minorUnits digits after the decimal point for this currency (2 for USD, 0 for IDR).
  */
-fun formatMoney(money: Money, currencyCode: String, minorUnits: Int): String {
+fun formatMoney(money: Money, currencyCode: String, minorUnits: Int): String =
+    "$currencyCode ${formatAmount(money, minorUnits)}"
+
+/**
+ * The grouped amount alone, without the currency code — e.g.
+ * `formatAmount(Money(1_500_000), 0)` -> `"1,500,000"`, `formatAmount(Money(-5), 2)` -> `"-0.05"`.
+ * Used where the code is shown once elsewhere (receipt line items, report columns).
+ */
+fun formatAmount(money: Money, minorUnits: Int): String {
     require(minorUnits >= 0) { "minorUnits must be >= 0, was $minorUnits" }
 
     val amount = BigDecimal.valueOf(money.minor).movePointLeft(minorUnits)
@@ -26,6 +34,5 @@ fun formatMoney(money: Money, currencyCode: String, minorUnits: Int): String {
         decimalSeparator = '.'
     }
     val pattern = if (minorUnits == 0) "#,##0" else "#,##0." + "0".repeat(minorUnits)
-    val formatted = DecimalFormat(pattern, symbols).format(amount)
-    return "$currencyCode $formatted"
+    return DecimalFormat(pattern, symbols).format(amount)
 }

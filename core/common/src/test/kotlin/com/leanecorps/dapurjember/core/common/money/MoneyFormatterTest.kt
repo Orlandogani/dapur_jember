@@ -28,4 +28,12 @@ class MoneyFormatterTest {
         assertEquals("USD -1,234.56", formatMoney(Money(-123_456), "USD", 2))
         assertEquals("IDR -2,000", formatMoney(Money(-2_000), "IDR", 0))
     }
+
+    @Test
+    fun `formatAmount drops the currency code`() {
+        assertEquals("1,500,000", formatAmount(Money(1_500_000), 0))
+        assertEquals("1,234.56", formatAmount(Money(123_456), 2))
+        assertEquals("0.05", formatAmount(Money(5), 2))
+        assertEquals("-2,000", formatAmount(Money(-2_000), 0))
+    }
 }
