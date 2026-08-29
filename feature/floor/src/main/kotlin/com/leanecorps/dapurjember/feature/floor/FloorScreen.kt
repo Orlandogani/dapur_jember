@@ -13,8 +13,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,41 +34,55 @@ import com.leanecorps.dapurjember.core.domain.floor.TableState
 @Composable
 fun FloorScreen(
     onOpenTable: (tableId: String) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: FloorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    FloorScreen(state = state, onOpenTable = onOpenTable)
+    FloorScreen(state = state, onOpenTable = onOpenTable, onOpenSettings = onOpenSettings)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun FloorScreen(
     state: FloorUiState,
     onOpenTable: (tableId: String) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
-    when {
-        state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Floor") },
+                actions = { TextButton(onClick = onOpenSettings) { Text("Settings") } },
+            )
+        },
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when {
+                state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
 
-        state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Text("No tables configured yet", style = MaterialTheme.typography.bodyLarge)
-        }
-
-        else -> LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 132.dp),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            state.areas.forEach { area ->
-                item(span = { GridItemSpan(maxLineSpan) }, key = "header_${area.id}") {
-                    Text(
-                        text = area.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                    )
+                state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    Text("No tables configured yet", style = MaterialTheme.typography.bodyLarge)
                 }
-                items(area.tables, key = { it.id }) { table ->
-                    TableCard(table = table, onClick = { onOpenTable(table.id) })
+
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 132.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    state.areas.forEach { area ->
+                        item(span = { GridItemSpan(maxLineSpan) }, key = "header_${area.id}") {
+                            Text(
+                                text = area.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        }
+                        items(area.tables, key = { it.id }) { table ->
+                            TableCard(table = table, onClick = { onOpenTable(table.id) })
+                        }
+                    }
                 }
             }
         }

@@ -27,6 +27,8 @@ import com.leanecorps.dapurjember.feature.order.navigation.orderScreen
 import com.leanecorps.dapurjember.feature.payment.navigation.navigateToPayment
 import com.leanecorps.dapurjember.feature.payment.navigation.paymentScreen
 import com.leanecorps.dapurjember.feature.settings.navigation.SETUP_ROUTE
+import com.leanecorps.dapurjember.feature.settings.navigation.navigateToPrinters
+import com.leanecorps.dapurjember.feature.settings.navigation.printersScreen
 import com.leanecorps.dapurjember.feature.settings.navigation.setupWizardScreen
 import com.leanecorps.dapurjember.feature.shift.navigation.SHIFT_ROUTE
 import com.leanecorps.dapurjember.feature.shift.navigation.shiftScreen
@@ -86,6 +88,7 @@ fun DapurJemberNavHost(
                         .onSuccess { navController.navigateToOrder(it) }
                 }
             },
+            onOpenSettings = { navController.navigateToPrinters() },
         )
         orderScreen(
             onCheckout = { orderId -> navController.navigateToPayment(orderId) },
@@ -97,6 +100,7 @@ fun DapurJemberNavHost(
                 }
             },
         )
+        printersScreen(onBack = { navController.popBackStack() })
         menuScreen()
     }
 }
