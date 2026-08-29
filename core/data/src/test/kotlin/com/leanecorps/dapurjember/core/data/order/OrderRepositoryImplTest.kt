@@ -21,6 +21,7 @@ import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
 import com.leanecorps.dapurjember.core.testing.database.MenuEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.seedOrderPrerequisites
 import com.leanecorps.dapurjember.core.testing.repository.FakePrintQueue
+import com.leanecorps.dapurjember.core.testing.repository.FakePrintQueueScheduler
 import com.leanecorps.dapurjember.core.testing.repository.FakeTicketRenderer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -74,7 +75,7 @@ class OrderRepositoryImplTest {
                 storeProfileDao = db.storeProfileDao(),
                 printerConfigDao = db.printerConfigDao(),
             ),
-            ticketPrinter = TicketPrinter(ticketRenderer, printQueue),
+            ticketPrinter = TicketPrinter(ticketRenderer, printQueue, FakePrintQueueScheduler()),
         )
     }
 

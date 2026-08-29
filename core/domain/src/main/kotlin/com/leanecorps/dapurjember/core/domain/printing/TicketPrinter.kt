@@ -11,6 +11,7 @@ import javax.inject.Inject
 class TicketPrinter @Inject constructor(
     private val renderer: TicketRenderer,
     private val queue: PrintQueue,
+    private val scheduler: PrintQueueScheduler,
 ) {
 
     /**
@@ -25,7 +26,9 @@ class TicketPrinter @Inject constructor(
     ): String? {
         if (ticket.lines.isEmpty() && !ticket.reprint) return null
         val payload = renderer.renderKitchenTicket(ticket, paperWidthMm)
-        return queue.enqueue(PrintJobType.KITCHEN, payload, targetPrinterId)
+        val jobId = queue.enqueue(PrintJobType.KITCHEN, payload, targetPrinterId)
+        scheduler.drainSoon()
+        return jobId
     }
 
     suspend fun printReceipt(
@@ -34,6 +37,8 @@ class TicketPrinter @Inject constructor(
         targetPrinterId: String? = null,
     ): String {
         val payload = renderer.renderReceipt(receipt, paperWidthMm)
-        return queue.enqueue(PrintJobType.RECEIPT, payload, targetPrinterId)
+        val jobId = queue.enqueue(PrintJobType.RECEIPT, payload, targetPrinterId)
+        scheduler.drainSoon()
+        return jobId
     }
 }

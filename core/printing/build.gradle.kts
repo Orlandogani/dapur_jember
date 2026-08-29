@@ -14,6 +14,10 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(libs.kotlinx.coroutines.android)
 
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

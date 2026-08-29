@@ -7,6 +7,7 @@ import com.leanecorps.dapurjember.core.domain.printing.ReceiptData
 import com.leanecorps.dapurjember.core.domain.printing.TicketPrinter
 import com.leanecorps.dapurjember.core.printing.escpos.EscPosDecoder
 import com.leanecorps.dapurjember.core.testing.repository.FakePrintQueue
+import com.leanecorps.dapurjember.core.testing.repository.FakePrintQueueScheduler
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -16,7 +17,8 @@ import org.junit.jupiter.api.Test
 class TicketPrinterTest {
 
     private val queue = FakePrintQueue()
-    private val printer = TicketPrinter(DefaultTicketRenderer(), queue)
+    private val scheduler = FakePrintQueueScheduler()
+    private val printer = TicketPrinter(DefaultTicketRenderer(), queue, scheduler)
 
     private fun kitchenTicket(lines: List<KitchenTicketLine>, reprint: Boolean = false) = KitchenTicketData(
         storeName = "Dapur Jember",
@@ -42,6 +44,7 @@ class TicketPrinterTest {
         assertEquals(jobId, job.id)
         assertEquals(PrintJobType.KITCHEN, job.type)
         assertTrue(EscPosDecoder.text(job.payload).contains("1 x Indomie"))
+        assertEquals(1, scheduler.drainSoonCalls)
     }
 
     @Test
@@ -50,6 +53,7 @@ class TicketPrinterTest {
 
         assertNull(jobId)
         assertTrue(queue.enqueued.isEmpty())
+        assertEquals(0, scheduler.drainSoonCalls)
     }
 
     @Test
