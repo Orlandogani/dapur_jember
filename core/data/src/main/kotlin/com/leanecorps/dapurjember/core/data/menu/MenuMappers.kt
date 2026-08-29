@@ -4,9 +4,13 @@ import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.data.database.entity.CategoryEntity
 import com.leanecorps.dapurjember.core.data.database.entity.MenuItemEntity
 import com.leanecorps.dapurjember.core.data.database.entity.MenuVariantEntity
+import com.leanecorps.dapurjember.core.data.database.entity.ModifierEntity
+import com.leanecorps.dapurjember.core.data.database.entity.ModifierGroupEntity
 import com.leanecorps.dapurjember.core.domain.menu.Category
 import com.leanecorps.dapurjember.core.domain.menu.MenuItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuVariant
+import com.leanecorps.dapurjember.core.domain.menu.Modifier
+import com.leanecorps.dapurjember.core.domain.menu.ModifierGroup
 
 // --- entity -> domain ------------------------------------------------------------------
 
@@ -37,6 +41,23 @@ internal fun MenuVariantEntity.toDomain() = MenuVariant(
     price = Money(priceMinor),
     sku = sku,
     sortOrder = sortOrder,
+)
+
+internal fun ModifierGroupEntity.toDomain() = ModifierGroup(
+    id = id,
+    name = name,
+    minSelect = minSelect,
+    maxSelect = maxSelect,
+    required = required,
+)
+
+internal fun ModifierEntity.toDomain() = Modifier(
+    id = id,
+    modifierGroupId = modifierGroupId,
+    name = name,
+    priceDelta = Money(priceDeltaMinor),
+    sortOrder = sortOrder,
+    defaultSelected = defaultSelected,
 )
 
 // --- domain -> entity ----------------------------------------------------------------------
@@ -83,6 +104,35 @@ internal fun MenuVariant.toEntity(existing: MenuVariantEntity?, now: Long, devic
         priceMinor = price.minor,
         sku = sku,
         sortOrder = sortOrder,
+        createdAt = existing?.createdAt ?: now,
+        updatedAt = now,
+        deletedAt = existing?.deletedAt,
+        deviceId = existing?.deviceId ?: deviceId,
+        revision = (existing?.revision ?: 0) + 1,
+    )
+
+internal fun ModifierGroup.toEntity(existing: ModifierGroupEntity?, now: Long, deviceId: String) =
+    ModifierGroupEntity(
+        id = id,
+        name = name,
+        minSelect = minSelect,
+        maxSelect = maxSelect,
+        required = required,
+        createdAt = existing?.createdAt ?: now,
+        updatedAt = now,
+        deletedAt = existing?.deletedAt,
+        deviceId = existing?.deviceId ?: deviceId,
+        revision = (existing?.revision ?: 0) + 1,
+    )
+
+internal fun Modifier.toEntity(existing: ModifierEntity?, now: Long, deviceId: String) =
+    ModifierEntity(
+        id = id,
+        modifierGroupId = modifierGroupId,
+        name = name,
+        priceDeltaMinor = priceDelta.minor,
+        sortOrder = sortOrder,
+        defaultSelected = defaultSelected,
         createdAt = existing?.createdAt ?: now,
         updatedAt = now,
         deletedAt = existing?.deletedAt,

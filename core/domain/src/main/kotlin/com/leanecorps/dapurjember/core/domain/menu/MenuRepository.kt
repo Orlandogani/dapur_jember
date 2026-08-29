@@ -35,6 +35,23 @@ interface MenuRepository {
     /** FR-M2 — flip the sold-out toggle in one tap from the order screen. */
     suspend fun setItemAvailability(itemId: String, available: Boolean)
 
+    // --- Modifier groups (FR-M3) ---
+
+    fun observeModifierGroups(): Flow<List<ModifierGroup>>
+
+    fun observeModifierGroup(groupId: String): Flow<ModifierGroupWithModifiers?>
+
+    /** Saves a group and its full modifier list in one transaction; dropped modifiers are soft-deleted. */
+    suspend fun saveModifierGroup(group: ModifierGroup, modifiers: List<Modifier>)
+
+    suspend fun softDeleteModifierGroup(groupId: String)
+
+    /** The modifier groups attached to [itemId], in their configured order, each with its modifiers. */
+    fun observeItemModifierGroups(itemId: String): Flow<List<ModifierGroupWithModifiers>>
+
+    /** Reconciles the item↔group links so exactly [groupIds] are attached, in that order. */
+    suspend fun setItemModifierGroups(itemId: String, groupIds: List<String>)
+
     suspend fun softDeleteCategory(categoryId: String)
 
     suspend fun softDeleteItem(itemId: String)

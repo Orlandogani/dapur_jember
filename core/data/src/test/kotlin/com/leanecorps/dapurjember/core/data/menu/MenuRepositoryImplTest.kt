@@ -10,6 +10,8 @@ import com.leanecorps.dapurjember.core.data.device.DeviceIdProvider
 import com.leanecorps.dapurjember.core.domain.menu.Category
 import com.leanecorps.dapurjember.core.domain.menu.MenuItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuVariant
+import com.leanecorps.dapurjember.core.domain.menu.Modifier
+import com.leanecorps.dapurjember.core.domain.menu.ModifierGroup
 import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -39,6 +41,9 @@ class MenuRepositoryImplTest {
             categoryDao = db.categoryDao(),
             menuItemDao = db.menuItemDao(),
             menuVariantDao = db.menuVariantDao(),
+            modifierGroupDao = db.modifierGroupDao(),
+            modifierDao = db.modifierDao(),
+            itemModifierGroupDao = db.itemModifierGroupDao(),
             changeLog = ChangeLogRecorder(db.changeLogDao(), deviceIds),
             time = time,
             deviceIds = deviceIds,
@@ -134,5 +139,43 @@ class MenuRepositoryImplTest {
         val detail = repo.observeItemWithVariants("i1").first()!!
         assertEquals("Nasi Goreng", detail.item.name)
         assertEquals(listOf(Money(15_000)), detail.variants.map { it.price })
+    }
+
+    @Test
+    fun `saveModifierGroup keeps chosen modifiers and soft-deletes the rest`() = runTest {
+        repo.saveModifierGroup(
+            ModifierGroup(id = "g1", name = "Spice level", minSelect = 1, maxSelect = 1, required = true),
+            listOf(
+                Modifier(id = "m1", modifierGroupId = "g1", name = "Mild"),
+                Modifier(id = "m2", modifierGroupId = "g1", name = "Hot", priceDelta = Money(2_000)),
+            ),
+        )
+        time.advanceBy(1)
+        repo.saveModifierGroup(
+            ModifierGroup(id = "g1", name = "Spice", minSelect = 1, maxSelect = 1, required = true),
+            listOf(Modifier(id = "m1", modifierGroupId = "g1", name = "Mild")),
+        )
+
+        val detail = repo.observeModifierGroup("g1").first()!!
+        assertEquals("Spice", detail.group.name)
+        assertEquals(listOf("Mild"), detail.modifiers.map { it.name })
+        assertEquals("modifier:DELETE", changeOps().last())
+    }
+
+    @Test
+    fun `setItemModifierGroups attaches, reorders and detaches links, re-adding a removed one`() = runTest {
+        repo.upsertCategory(Category(id = "c1", name = "Food"))
+        repo.upsertItem(MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"))
+        repo.saveModifierGroup(ModifierGroup(id = "g1", name = "Spice"), emptyList())
+        repo.saveModifierGroup(ModifierGroup(id = "g2", name = "Add-ons"), emptyList())
+
+        repo.setItemModifierGroups("i1", listOf("g1", "g2"))
+        assertEquals(listOf("Spice", "Add-ons"), repo.observeItemModifierGroups("i1").first().map { it.group.name })
+
+        repo.setItemModifierGroups("i1", listOf("g2")) // drop g1
+        assertEquals(listOf("Add-ons"), repo.observeItemModifierGroups("i1").first().map { it.group.name })
+
+        repo.setItemModifierGroups("i1", listOf("g1", "g2")) // re-add g1 (unique index survives soft delete)
+        assertEquals(listOf("Spice", "Add-ons"), repo.observeItemModifierGroups("i1").first().map { it.group.name })
     }
 }

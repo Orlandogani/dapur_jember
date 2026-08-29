@@ -6,8 +6,12 @@ import com.leanecorps.dapurjember.core.domain.menu.MenuItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuItemWithVariants
 import com.leanecorps.dapurjember.core.domain.menu.MenuRepository
 import com.leanecorps.dapurjember.core.domain.menu.MenuVariant
+import com.leanecorps.dapurjember.core.domain.menu.Modifier
+import com.leanecorps.dapurjember.core.domain.menu.ModifierGroup
+import com.leanecorps.dapurjember.core.domain.menu.ModifierGroupWithModifiers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
@@ -17,6 +21,11 @@ class FakeMenuRepository : MenuRepository {
     private val categories = MutableStateFlow<List<Category>>(emptyList())
     private val items = MutableStateFlow<List<MenuItem>>(emptyList())
     private val variants = MutableStateFlow<List<MenuVariant>>(emptyList())
+    private val groups = MutableStateFlow<List<ModifierGroup>>(emptyList())
+    private val modifiers = MutableStateFlow<List<Modifier>>(emptyList())
+
+    /** itemId -> ordered list of groupIds. */
+    private val itemGroups = MutableStateFlow<Map<String, List<String>>>(emptyMap())
 
     override fun observeCategories(): Flow<List<Category>> = categories
 
@@ -59,6 +68,39 @@ class FakeMenuRepository : MenuRepository {
 
     override suspend fun setItemAvailability(itemId: String, available: Boolean) =
         items.update { list -> list.map { if (it.id == itemId) it.copy(available = available) else it } }
+
+    override fun observeModifierGroups(): Flow<List<ModifierGroup>> = groups
+
+    override fun observeModifierGroup(groupId: String): Flow<ModifierGroupWithModifiers?> =
+        combine(groups, modifiers) { gs, ms ->
+            gs.firstOrNull { it.id == groupId }
+                ?.let { ModifierGroupWithModifiers(it, ms.filter { m -> m.modifierGroupId == groupId }) }
+        }
+
+    override suspend fun saveModifierGroup(group: ModifierGroup, newModifiers: List<Modifier>) {
+        groups.update { it.filterNot { g -> g.id == group.id } + group }
+        modifiers.update { current ->
+            current.filterNot { it.modifierGroupId == group.id } +
+                newModifiers.map { it.copy(modifierGroupId = group.id) }
+        }
+    }
+
+    override suspend fun softDeleteModifierGroup(groupId: String) {
+        groups.update { it.filterNot { g -> g.id == groupId } }
+        itemGroups.update { map -> map.mapValues { (_, ids) -> ids.filterNot { it == groupId } } }
+    }
+
+    override fun observeItemModifierGroups(itemId: String): Flow<List<ModifierGroupWithModifiers>> =
+        combine(groups, modifiers, itemGroups) { gs, ms, links ->
+            (links[itemId].orEmpty()).mapNotNull { groupId ->
+                gs.firstOrNull { it.id == groupId }?.let { group ->
+                    ModifierGroupWithModifiers(group, ms.filter { it.modifierGroupId == groupId })
+                }
+            }
+        }
+
+    override suspend fun setItemModifierGroups(itemId: String, groupIds: List<String>) =
+        itemGroups.update { it + (itemId to groupIds) }
 
     override suspend fun softDeleteCategory(categoryId: String) =
         categories.update { it.filterNot { c -> c.id == categoryId } }
