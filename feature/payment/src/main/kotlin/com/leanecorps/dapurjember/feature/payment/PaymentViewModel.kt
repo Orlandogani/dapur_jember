@@ -76,6 +76,10 @@ class PaymentViewModel @Inject constructor(
         }
     }
 
+    fun reprintReceipt() {
+        viewModelScope.launch { orderRepository.reprintReceipt(orderId) }
+    }
+
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
     }

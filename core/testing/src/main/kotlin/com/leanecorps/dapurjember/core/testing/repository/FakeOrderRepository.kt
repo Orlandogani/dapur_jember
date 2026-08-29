@@ -147,6 +147,13 @@ class FakeOrderRepository : OrderRepository {
         return order.amountPaid >= order.totals.total
     }
 
+    var receiptReprints = 0
+        private set
+
+    override suspend fun reprintReceipt(orderId: String) {
+        receiptReprints++
+    }
+
     private inline fun mutateLine(lineId: String, transform: (OrderLine) -> OrderLine) {
         val order = orders.value.values.first { o -> o.lines.any { it.id == lineId } }
         put(order.copy(lines = order.lines.map { if (it.id == lineId) transform(it) else it }))

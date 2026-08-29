@@ -36,14 +36,20 @@ fun PaymentScreen(
     viewModel: PaymentViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(state.settled) { if (state.settled) onSettled() }
-    PaymentScreen(state = state, onPay = viewModel::pay)
+    PaymentScreen(
+        state = state,
+        onPay = viewModel::pay,
+        onReprint = viewModel::reprintReceipt,
+        onDone = onSettled,
+    )
 }
 
 @Composable
 internal fun PaymentScreen(
     state: PaymentUiState,
     onPay: (PaymentMethod, Long, Long) -> Unit,
+    onReprint: () -> Unit,
+    onDone: () -> Unit,
 ) {
     var method by remember { mutableStateOf(PaymentMethod.CASH) }
     var amount by remember { mutableStateOf("") }
@@ -55,6 +61,15 @@ internal fun PaymentScreen(
         AmountRow("Total", state.totalMinor)
         AmountRow("Paid", state.paidMinor)
         AmountRow("Balance", state.balanceMinor, emphasise = true)
+
+        if (state.settled) {
+            Text("Paid in full", style = MaterialTheme.typography.titleMedium)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PosOutlinedButton(text = "Reprint receipt", onClick = onReprint, modifier = Modifier.weight(1f))
+                PosButton(text = "Done", onClick = onDone, modifier = Modifier.weight(1f))
+            }
+            return@Column
+        }
 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PaymentMethod.entries.forEach { m ->

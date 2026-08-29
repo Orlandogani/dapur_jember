@@ -43,6 +43,9 @@ interface OrderRepository {
 
     /** True once the recorded payments cover the order total. */
     suspend fun isFullySettled(orderId: String): Boolean
+
+    /** Queues another copy of the customer receipt, marked as a reprint (FR — S12). */
+    suspend fun reprintReceipt(orderId: String)
 }
 
 data class ApplyDiscountParams(

@@ -198,6 +198,18 @@ class OrderRepositoryImplTest {
     }
 
     @Test
+    fun `reprintReceipt queues another RECEIPT job flagged as a reprint`() = runTest {
+        db.storeProfileDao().upsert(MenuEntityFixtures.storeProfile().copy(taxRateBp = 0))
+        val id = openOrder()
+        addLine(id)
+
+        repo.reprintReceipt(id)
+
+        assertEquals(1, printQueue.enqueued.count { it.type.name == "RECEIPT" })
+        assertTrue(ticketRenderer.receipts.single().reprint)
+    }
+
+    @Test
     fun `voidLine writes an audit_log row and drops the line from the total`() = runTest {
         db.storeProfileDao().upsert(MenuEntityFixtures.storeProfile().copy(taxRateBp = 0))
         val id = openOrder()

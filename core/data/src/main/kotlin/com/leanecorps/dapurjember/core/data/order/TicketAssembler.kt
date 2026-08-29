@@ -72,7 +72,7 @@ internal class TicketAssembler @Inject constructor(
         )
     }
 
-    suspend fun receipt(orderId: String, now: Long): ReceiptData? {
+    suspend fun receipt(orderId: String, now: Long, reprint: Boolean = false): ReceiptData? {
         val order = orderDao.getById(orderId) ?: return null
         val profile = storeProfileDao.get()
         val table = order.diningTableId?.let { tableDao.getById(it) }
@@ -107,6 +107,7 @@ internal class TicketAssembler @Inject constructor(
             currencyCode = profile?.currencyCode ?: "",
             currencyMinorUnits = profile?.currencyMinorUnits ?: 0,
             footerLines = profile?.receiptFooter?.lines().orEmpty().filter { it.isNotBlank() },
+            reprint = reprint,
         )
     }
 

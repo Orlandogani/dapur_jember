@@ -281,6 +281,14 @@ internal class OrderRepositoryImpl @Inject constructor(
         return paymentDao.totalPaidMinor(orderId) >= order.totalMinor
     }
 
+    override suspend fun reprintReceipt(orderId: String) = db.withTransaction {
+        val now = time.nowMillis()
+        ticketAssembler.receipt(orderId, now, reprint = true)?.let { receipt ->
+            ticketPrinter.printReceipt(receipt, ticketAssembler.paperWidthMmFor(PrinterRole.RECEIPT))
+        }
+        Unit
+    }
+
     /** A snapshot amount for the `discount` row (informational — the engine owns the order total). */
     private suspend fun discountSnapshot(params: ApplyDiscountParams): Money {
         val lineId = params.orderLineId
