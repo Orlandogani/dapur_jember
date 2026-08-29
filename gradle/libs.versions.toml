@@ -17,6 +17,7 @@ navigationCompose = "2.8.5"
 ktlintPlugin = "12.1.2"
 detekt = "1.23.7"
 junit5 = "5.11.4"
+kotest = "5.9.1"
 turbine = "1.2.0"
 mockk = "1.13.13"
 sqlcipher = "4.6.1"
@@ -57,6 +58,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit5" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+kotest-property = { group = "io.kotest", name = "kotest-property", version.ref = "kotest" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
