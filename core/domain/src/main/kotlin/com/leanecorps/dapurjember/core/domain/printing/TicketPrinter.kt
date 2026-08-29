@@ -41,4 +41,22 @@ class TicketPrinter @Inject constructor(
         scheduler.drainSoon()
         return jobId
     }
+
+    /** Queues a fixed test page to one specific printer (S30 — the mandatory test-print button). */
+    suspend fun printTestPage(printerId: String, printerName: String, paperWidthMm: Int, printedAt: String): String {
+        val data = KitchenTicketData(
+            storeName = printerName,
+            stationTitle = "Test print",
+            orderNumber = "-",
+            tableLabel = null,
+            orderType = "Test",
+            serverName = "-",
+            printedAt = printedAt,
+            lines = listOf(KitchenTicketLine(quantity = 1, name = "If you can read this, the printer works.")),
+        )
+        val payload = renderer.renderKitchenTicket(data, paperWidthMm)
+        val jobId = queue.enqueue(PrintJobType.KITCHEN, payload, printerId)
+        scheduler.drainSoon()
+        return jobId
+    }
 }
