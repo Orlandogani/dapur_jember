@@ -31,6 +31,7 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:common"))
     implementation(project(":core:domain"))
+    implementation(project(":core:printing"))
 
     implementation(project(":feature:auth"))
     implementation(project(":feature:menu"))

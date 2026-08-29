@@ -16,9 +16,12 @@ import com.leanecorps.dapurjember.core.domain.order.OrderEvent
 import com.leanecorps.dapurjember.core.domain.order.OrderState
 import com.leanecorps.dapurjember.core.domain.order.PaymentMethod
 import com.leanecorps.dapurjember.core.domain.order.RecordPaymentParams
+import com.leanecorps.dapurjember.core.domain.printing.TicketPrinter
 import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
 import com.leanecorps.dapurjember.core.testing.database.MenuEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.seedOrderPrerequisites
+import com.leanecorps.dapurjember.core.testing.repository.FakePrintQueue
+import com.leanecorps.dapurjember.core.testing.repository.FakeTicketRenderer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -36,6 +39,8 @@ class OrderRepositoryImplTest {
     private lateinit var db: DapurJemberDatabase
     private lateinit var repo: OrderRepositoryImpl
     private val time = FakeTimeProvider(now = 1_000L)
+    private val printQueue = FakePrintQueue()
+    private val ticketRenderer = FakeTicketRenderer()
 
     @Before
     fun setUp() = runTest {
@@ -59,6 +64,17 @@ class OrderRepositoryImplTest {
             auditLog = AuditLogRecorder(db.auditLogDao()),
             time = time,
             deviceIds = deviceIds,
+            ticketAssembler = TicketAssembler(
+                orderDao = db.orderDao(),
+                lineDao = db.orderLineDao(),
+                lineModifierDao = db.orderLineModifierDao(),
+                paymentDao = db.paymentDao(),
+                staffDao = db.staffDao(),
+                tableDao = db.diningTableDao(),
+                storeProfileDao = db.storeProfileDao(),
+                printerConfigDao = db.printerConfigDao(),
+            ),
+            ticketPrinter = TicketPrinter(ticketRenderer, printQueue),
         )
     }
 
@@ -138,6 +154,46 @@ class OrderRepositoryImplTest {
         assertEquals(1, secondBatch.size)
 
         assertTrue(repo.sendToKitchen(id).isEmpty())
+    }
+
+    @Test
+    fun `sendToKitchen queues a kitchen ticket carrying the sent lines`() = runTest {
+        val id = openOrder()
+        addLine(id)
+        time.advanceBy(1)
+
+        repo.sendToKitchen(id)
+
+        val job = printQueue.enqueued.single()
+        assertEquals("KITCHEN", job.type.name)
+        assertEquals("A-001", ticketRenderer.kitchenTickets.single().orderNumber)
+        assertEquals(1, ticketRenderer.kitchenTickets.single().lines.size)
+    }
+
+    @Test
+    fun `a re-send with no new lines queues nothing`() = runTest {
+        val id = openOrder()
+        addLine(id)
+        time.advanceBy(1)
+        repo.sendToKitchen(id)
+        repo.sendToKitchen(id)
+
+        assertEquals(1, printQueue.enqueued.size)
+    }
+
+    @Test
+    fun `reaching PAID queues a customer receipt exactly once`() = runTest {
+        db.storeProfileDao().upsert(MenuEntityFixtures.storeProfile().copy(taxRateBp = 0))
+        val id = openOrder()
+        addLine(id)
+        time.advanceBy(1)
+        repo.sendToKitchen(id)
+        repo.applyEvent(id, OrderEvent.SERVE)
+
+        repo.applyEvent(id, OrderEvent.PAY)
+
+        assertEquals(1, printQueue.enqueued.count { it.type.name == "RECEIPT" })
+        assertEquals("A-001", ticketRenderer.receipts.single().orderNumber)
     }
 
     @Test

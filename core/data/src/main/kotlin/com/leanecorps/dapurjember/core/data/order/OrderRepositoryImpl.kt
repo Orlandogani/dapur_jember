@@ -40,6 +40,8 @@ import com.leanecorps.dapurjember.core.domain.pricing.PricingEngine
 import com.leanecorps.dapurjember.core.domain.pricing.PricingLine
 import com.leanecorps.dapurjember.core.domain.pricing.PricingRequest
 import com.leanecorps.dapurjember.core.domain.pricing.TaxConfig
+import com.leanecorps.dapurjember.core.domain.printing.PrinterRole
+import com.leanecorps.dapurjember.core.domain.printing.TicketPrinter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -65,6 +67,8 @@ internal class OrderRepositoryImpl @Inject constructor(
     private val auditLog: AuditLogRecorder,
     private val time: TimeProvider,
     private val deviceIds: DeviceIdProvider,
+    private val ticketAssembler: TicketAssembler,
+    private val ticketPrinter: TicketPrinter,
 ) : OrderRepository {
 
     override fun observeOrder(orderId: String): Flow<Order?> =
@@ -194,15 +198,25 @@ internal class OrderRepositoryImpl @Inject constructor(
             orderDao.markSent(orderId, now)
             changeLog.record("orders", orderId, ChangeOp.UPDATE, now)
         }
+        // FR-PR3: the kitchen ticket is queued in this same transaction, then printed off-thread.
+        ticketAssembler.kitchenTicket(orderId, unsent, now)?.let { ticket ->
+            ticketPrinter.printKitchenTicket(ticket, ticketAssembler.paperWidthMmFor(PrinterRole.KITCHEN))
+        }
         unsent.map { row -> row.toDomain(lineModifierDao.getForLine(row.id)) }
     }
 
     override suspend fun applyEvent(orderId: String, event: OrderEvent) = db.withTransaction {
         val order = requireNotNull(orderDao.getById(orderId)) { "unknown order $orderId" }
-        val target = OrderStateMachine.transition(OrderState.fromStorage(order.state), event)
+        val from = OrderState.fromStorage(order.state)
+        val target = OrderStateMachine.transition(from, event)
         val now = time.nowMillis()
         orderDao.updateState(orderId, target.storageValue, now)
         changeLog.record("orders", orderId, ChangeOp.UPDATE, now)
+        if (target == OrderState.PAID && from != OrderState.PAID) {
+            ticketAssembler.receipt(orderId, now)?.let { receipt ->
+                ticketPrinter.printReceipt(receipt, ticketAssembler.paperWidthMmFor(PrinterRole.RECEIPT))
+            }
+        }
     }
 
     override suspend fun applyDiscount(params: ApplyDiscountParams): String = db.withTransaction {

@@ -5,7 +5,6 @@ import com.leanecorps.dapurjember.core.domain.printing.PrinterRepository
 import com.leanecorps.dapurjember.core.domain.printing.PrinterRole
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 class FakePrinterRepository(initial: List<Printer> = emptyList()) : PrinterRepository {
