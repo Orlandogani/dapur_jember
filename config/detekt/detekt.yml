@@ -31,4 +31,7 @@ complexity:
   LongMethod:
     excludes: ['**/database/migration/**']
   TooManyFunctions:
-    excludes: ['**/*Repository.kt', '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/test/**', '**/androidTest/**']
+    # Fluent builders (DAOs, the ESC/POS byte builder) are many small one-liner methods by design.
+    excludes:
+      ['**/*Repository.kt', '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/EscPosBuilder.kt',
+       '**/test/**', '**/androidTest/**']
