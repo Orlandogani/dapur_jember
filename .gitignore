@@ -8,3 +8,7 @@ build/
 .cxx
 local.properties
 /.idea/
+
+# Internal planning docs and agent instructions — kept local, not published
+/CLAUDE.md
+/docs/
