@@ -22,8 +22,10 @@ import com.leanecorps.dapurjember.feature.auth.navigation.pinLockScreen
 import com.leanecorps.dapurjember.feature.floor.navigation.FLOOR_ROUTE
 import com.leanecorps.dapurjember.feature.floor.navigation.floorScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.MENU_ROUTE
+import com.leanecorps.dapurjember.feature.menu.navigation.menuCsvImportScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.menuItemEditorScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.menuScreen
+import com.leanecorps.dapurjember.feature.menu.navigation.navigateToMenuCsvImport
 import com.leanecorps.dapurjember.feature.menu.navigation.navigateToMenuItemEditor
 import com.leanecorps.dapurjember.feature.order.navigation.navigateToOrder
 import com.leanecorps.dapurjember.feature.order.navigation.orderScreen
@@ -98,8 +100,12 @@ fun DapurJemberNavHost(
             },
         )
         printersScreen(onBack = { navController.popBackStack() })
-        menuScreen(onEditItem = { itemId -> navController.navigateToMenuItemEditor(itemId) })
+        menuScreen(
+            onEditItem = { itemId -> navController.navigateToMenuItemEditor(itemId) },
+            onImportCsv = { navController.navigateToMenuCsvImport() },
+        )
         menuItemEditorScreen(onDone = { navController.popBackStack() })
+        menuCsvImportScreen(onBack = { navController.popBackStack() })
     }
 }
 

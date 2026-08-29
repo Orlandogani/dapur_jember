@@ -29,7 +29,8 @@ complexity:
       ['**/entity/**', '**/test/**', '**/androidTest/**', '**/core/testing/**',
        '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/*Recorder.kt']
   LongMethod:
-    excludes: ['**/database/migration/**']
+    # Migrations carry verbatim DDL; a NavHost is a flat declarative list of destinations.
+    excludes: ['**/database/migration/**', '**/navigation/*NavHost.kt']
   TooManyFunctions:
     # Fluent builders (DAOs, the ESC/POS byte builder), Hilt aggregator modules and multi-step
     # form action-bags are many small one-liner methods by design.
