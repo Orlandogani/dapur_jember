@@ -21,11 +21,7 @@ data class PrintJob(
     val lastError: String?,
     val createdAt: Long,
     val updatedAt: Long,
-) {
-    override fun equals(other: Any?): Boolean = this === other || (other is PrintJob && other.id == id)
-
-    override fun hashCode(): Int = id.hashCode()
-}
+)
 
 /** Outcome of one attempt to send a job to a printer. */
 sealed interface PrintAttemptResult {

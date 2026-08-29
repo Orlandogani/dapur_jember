@@ -2,6 +2,8 @@ package com.leanecorps.dapurjember.core.printing.di
 
 import com.leanecorps.dapurjember.core.domain.printing.TicketRenderer
 import com.leanecorps.dapurjember.core.printing.DefaultTicketRenderer
+import com.leanecorps.dapurjember.core.printing.transport.DefaultPrinterTransportFactory
+import com.leanecorps.dapurjember.core.printing.transport.PrinterTransportFactory
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -13,4 +15,7 @@ internal abstract class PrintingModule {
 
     @Binds
     abstract fun bindTicketRenderer(impl: DefaultTicketRenderer): TicketRenderer
+
+    @Binds
+    abstract fun bindPrinterTransportFactory(impl: DefaultPrinterTransportFactory): PrinterTransportFactory
 }
