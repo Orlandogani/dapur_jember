@@ -108,10 +108,40 @@ class MigrationTest {
     }
 
     @Test
-    fun `migrate 1 to 4 chained validates`() {
-        val dbName = "migration-1-4.db"
+    fun `migrate 4 to 5 adds the print queue and printer config`() {
+        val dbName = "migration-4-5.db"
+        helper.createDatabase(dbName, 4).close()
+
+        val migrated = helper.runMigrationsAndValidate(dbName, 5, true, Migration4To5)
+
+        migrated.execSQL(
+            "INSERT INTO print_job (id, type, payload_bytes, state, attempts, created_at, updated_at) " +
+                "VALUES ('pj1', 'RECEIPT', x'1b40', 'PENDING', 0, 1, 1)",
+        )
+        migrated.execSQL(
+            "INSERT INTO printer_config (id, name, transport, address, paper_width_mm, codepage, roles, " +
+                "created_at, updated_at) VALUES ('p1', 'Front', 'TCP', '10.0.0.5:9100', 80, 0, 'RECEIPT', 1, 1)",
+        )
+        migrated.query("SELECT state FROM print_job WHERE id = 'pj1'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("PENDING", cursor.getString(0))
+        }
+        migrated.close()
+    }
+
+    @Test
+    fun `migrate 1 to 5 chained validates`() {
+        val dbName = "migration-1-5.db"
         helper.createDatabase(dbName, 1).close()
 
-        helper.runMigrationsAndValidate(dbName, 4, true, Migration1To2, Migration2To3, Migration3To4).close()
+        helper.runMigrationsAndValidate(
+            dbName,
+            5,
+            true,
+            Migration1To2,
+            Migration2To3,
+            Migration3To4,
+            Migration4To5,
+        ).close()
     }
 }

@@ -19,6 +19,8 @@ import com.leanecorps.dapurjember.core.data.database.dao.OrderDao
 import com.leanecorps.dapurjember.core.data.database.dao.OrderLineDao
 import com.leanecorps.dapurjember.core.data.database.dao.OrderLineModifierDao
 import com.leanecorps.dapurjember.core.data.database.dao.PaymentDao
+import com.leanecorps.dapurjember.core.data.database.dao.PrintJobDao
+import com.leanecorps.dapurjember.core.data.database.dao.PrinterConfigDao
 import com.leanecorps.dapurjember.core.data.database.dao.RecipeLineDao
 import com.leanecorps.dapurjember.core.data.database.dao.ShiftDao
 import com.leanecorps.dapurjember.core.data.database.dao.StaffDao
@@ -42,6 +44,8 @@ import com.leanecorps.dapurjember.core.data.database.entity.OrderEntity
 import com.leanecorps.dapurjember.core.data.database.entity.OrderLineEntity
 import com.leanecorps.dapurjember.core.data.database.entity.OrderLineModifierEntity
 import com.leanecorps.dapurjember.core.data.database.entity.PaymentEntity
+import com.leanecorps.dapurjember.core.data.database.entity.PrintJobEntity
+import com.leanecorps.dapurjember.core.data.database.entity.PrinterConfigEntity
 import com.leanecorps.dapurjember.core.data.database.entity.RecipeLineEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ShiftEntity
 import com.leanecorps.dapurjember.core.data.database.entity.StaffEntity
@@ -74,8 +78,10 @@ import com.leanecorps.dapurjember.core.data.database.entity.SupplierEntity
         IngredientEntity::class,
         RecipeLineEntity::class,
         StockMovementEntity::class,
+        PrintJobEntity::class,
+        PrinterConfigEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @Suppress("TooManyFunctions") // one accessor per DAO — that is what a @Database class is
@@ -103,6 +109,8 @@ abstract class DapurJemberDatabase : RoomDatabase() {
     abstract fun ingredientDao(): IngredientDao
     abstract fun recipeLineDao(): RecipeLineDao
     abstract fun stockMovementDao(): StockMovementDao
+    abstract fun printJobDao(): PrintJobDao
+    abstract fun printerConfigDao(): PrinterConfigDao
 
     companion object {
         const val NAME = "dapurjember.db"

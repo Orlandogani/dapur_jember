@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * The SQL below is copied verbatim from `schemas/…/2.json` (`${'$'}{TABLE_NAME}` replaced with the
  * real table name), so `MigrationTestHelper.runMigrationsAndValidate` accepts it byte-for-byte.
  */
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3, Migration3To4)
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3, Migration3To4, Migration4To5)
 
 /** v1 → v2: adds the floor, staff and shift tables. No existing table is touched. */
 internal object Migration1To2 : Migration(1, 2) {
@@ -234,5 +234,29 @@ internal object Migration3To4 : Migration(3, 4) {
             "CREATE INDEX IF NOT EXISTS `index_stock_movement_order_line_id` ON `stock_movement` (`order_line_id`)",
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_stock_movement_staff_id` ON `stock_movement` (`staff_id`)")
+    }
+}
+
+/**
+ * v4 → v5: adds the print queue and printer configuration (`docs/3-data-model` §3.8).
+ * Device-local infrastructure — no foreign keys, not synced.
+ */
+internal object Migration4To5 : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `print_job` (`id` TEXT NOT NULL, `type` TEXT NOT NULL, " +
+                "`payload_bytes` BLOB NOT NULL, `target_printer_id` TEXT, `state` TEXT NOT NULL, " +
+                "`attempts` INTEGER NOT NULL, `last_error` TEXT, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_print_job_state` ON `print_job` (`state`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_print_job_created_at` ON `print_job` (`created_at`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `printer_config` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                "`transport` TEXT NOT NULL, `address` TEXT NOT NULL, `paper_width_mm` INTEGER NOT NULL, " +
+                "`codepage` INTEGER NOT NULL, `roles` TEXT NOT NULL, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, `deleted_at` INTEGER, PRIMARY KEY(`id`))",
+        )
     }
 }
