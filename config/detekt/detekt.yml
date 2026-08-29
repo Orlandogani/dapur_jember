@@ -31,8 +31,8 @@ complexity:
   LongMethod:
     excludes: ['**/database/migration/**']
   TooManyFunctions:
-    # Fluent builders (DAOs, the ESC/POS byte builder) and Hilt aggregator modules are many
-    # small one-liner methods by design.
+    # Fluent builders (DAOs, the ESC/POS byte builder), Hilt aggregator modules and multi-step
+    # form action-bags are many small one-liner methods by design.
     excludes:
       ['**/*Repository.kt', '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/EscPosBuilder.kt',
-       '**/di/*Module.kt', '**/test/**', '**/androidTest/**']
+       '**/di/*Module.kt', '**/setup/SetupWizard*.kt', '**/test/**', '**/androidTest/**']
