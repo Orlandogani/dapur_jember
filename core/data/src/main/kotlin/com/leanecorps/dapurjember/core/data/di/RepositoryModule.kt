@@ -9,6 +9,7 @@ import com.leanecorps.dapurjember.core.data.order.OrderRepositoryImpl
 import com.leanecorps.dapurjember.core.data.order.SequentialOrderNumberGenerator
 import com.leanecorps.dapurjember.core.data.printing.PrintQueueImpl
 import com.leanecorps.dapurjember.core.data.printing.PrinterRepositoryImpl
+import com.leanecorps.dapurjember.core.data.reports.ReportsRepositoryImpl
 import com.leanecorps.dapurjember.core.data.session.SessionRepositoryImpl
 import com.leanecorps.dapurjember.core.data.shift.ShiftRepositoryImpl
 import com.leanecorps.dapurjember.core.domain.auth.AuthRepository
@@ -20,6 +21,7 @@ import com.leanecorps.dapurjember.core.domain.order.OrderNumberGenerator
 import com.leanecorps.dapurjember.core.domain.order.OrderRepository
 import com.leanecorps.dapurjember.core.domain.printing.PrintQueue
 import com.leanecorps.dapurjember.core.domain.printing.PrinterRepository
+import com.leanecorps.dapurjember.core.domain.reports.ReportsRepository
 import com.leanecorps.dapurjember.core.domain.session.SessionRepository
 import com.leanecorps.dapurjember.core.domain.shift.ShiftRepository
 import dagger.Binds
@@ -63,4 +65,7 @@ internal abstract class RepositoryModule {
 
     @Binds
     abstract fun bindPrinterRepository(impl: PrinterRepositoryImpl): PrinterRepository
+
+    @Binds
+    abstract fun bindReportsRepository(impl: ReportsRepositoryImpl): ReportsRepository
 }

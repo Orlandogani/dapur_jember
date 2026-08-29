@@ -35,6 +35,7 @@ import com.leanecorps.dapurjember.core.domain.floor.TableState
 fun FloorScreen(
     onOpenTable: (tableId: String) -> Unit,
     onOpenMenu: () -> Unit,
+    onOpenReports: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: FloorViewModel = hiltViewModel(),
 ) {
@@ -43,6 +44,7 @@ fun FloorScreen(
         state = state,
         onOpenTable = onOpenTable,
         onOpenMenu = onOpenMenu,
+        onOpenReports = onOpenReports,
         onOpenSettings = onOpenSettings,
     )
 }
@@ -53,6 +55,7 @@ internal fun FloorScreen(
     state: FloorUiState,
     onOpenTable: (tableId: String) -> Unit,
     onOpenMenu: () -> Unit,
+    onOpenReports: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Scaffold(
@@ -61,6 +64,7 @@ internal fun FloorScreen(
                 title = { Text("Floor") },
                 actions = {
                     TextButton(onClick = onOpenMenu) { Text("Menu") }
+                    TextButton(onClick = onOpenReports) { Text("Reports") }
                     TextButton(onClick = onOpenSettings) { Text("Settings") }
                 },
             )

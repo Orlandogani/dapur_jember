@@ -22,6 +22,7 @@ import com.leanecorps.dapurjember.core.data.database.dao.PaymentDao
 import com.leanecorps.dapurjember.core.data.database.dao.PrintJobDao
 import com.leanecorps.dapurjember.core.data.database.dao.PrinterConfigDao
 import com.leanecorps.dapurjember.core.data.database.dao.RecipeLineDao
+import com.leanecorps.dapurjember.core.data.database.dao.ReportsDao
 import com.leanecorps.dapurjember.core.data.database.dao.ShiftDao
 import com.leanecorps.dapurjember.core.data.database.dao.StaffDao
 import com.leanecorps.dapurjember.core.data.database.dao.StockMovementDao
@@ -111,6 +112,7 @@ abstract class DapurJemberDatabase : RoomDatabase() {
     abstract fun stockMovementDao(): StockMovementDao
     abstract fun printJobDao(): PrintJobDao
     abstract fun printerConfigDao(): PrinterConfigDao
+    abstract fun reportsDao(): ReportsDao
 
     companion object {
         const val NAME = "dapurjember.db"

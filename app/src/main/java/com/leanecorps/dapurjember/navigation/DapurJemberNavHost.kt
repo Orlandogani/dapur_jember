@@ -33,6 +33,8 @@ import com.leanecorps.dapurjember.feature.order.navigation.navigateToOrder
 import com.leanecorps.dapurjember.feature.order.navigation.orderScreen
 import com.leanecorps.dapurjember.feature.payment.navigation.navigateToPayment
 import com.leanecorps.dapurjember.feature.payment.navigation.paymentScreen
+import com.leanecorps.dapurjember.feature.reports.navigation.navigateToReports
+import com.leanecorps.dapurjember.feature.reports.navigation.reportsScreen
 import com.leanecorps.dapurjember.feature.settings.navigation.SETUP_ROUTE
 import com.leanecorps.dapurjember.feature.settings.navigation.navigateToPrinters
 import com.leanecorps.dapurjember.feature.settings.navigation.printersScreen
@@ -89,6 +91,7 @@ fun DapurJemberNavHost(
                 }
             },
             onOpenMenu = { navController.navigate(MENU_ROUTE) },
+            onOpenReports = { navController.navigateToReports() },
             onOpenSettings = { navController.navigateToPrinters() },
         )
         orderScreen(
@@ -110,6 +113,7 @@ fun DapurJemberNavHost(
         menuItemEditorScreen(onDone = { navController.popBackStack() })
         menuCsvImportScreen(onBack = { navController.popBackStack() })
         modifierGroupsScreen(onBack = { navController.popBackStack() })
+        reportsScreen(onBack = { navController.popBackStack() })
     }
 }
 
