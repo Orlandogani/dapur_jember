@@ -32,10 +32,12 @@ import com.leanecorps.dapurjember.core.designsystem.theme.PosTouchTarget
 import com.leanecorps.dapurjember.core.domain.floor.TableState
 
 @Composable
+@Suppress("LongParameterList")
 fun FloorScreen(
     onOpenTable: (tableId: String) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenReports: () -> Unit,
+    onOpenInventory: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: FloorViewModel = hiltViewModel(),
 ) {
@@ -45,17 +47,20 @@ fun FloorScreen(
         onOpenTable = onOpenTable,
         onOpenMenu = onOpenMenu,
         onOpenReports = onOpenReports,
+        onOpenInventory = onOpenInventory,
         onOpenSettings = onOpenSettings,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongParameterList")
 internal fun FloorScreen(
     state: FloorUiState,
     onOpenTable: (tableId: String) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenReports: () -> Unit,
+    onOpenInventory: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Scaffold(
@@ -65,6 +70,7 @@ internal fun FloorScreen(
                 actions = {
                     TextButton(onClick = onOpenMenu) { Text("Menu") }
                     TextButton(onClick = onOpenReports) { Text("Reports") }
+                    TextButton(onClick = onOpenInventory) { Text("Inventory") }
                     TextButton(onClick = onOpenSettings) { Text("Settings") }
                 },
             )

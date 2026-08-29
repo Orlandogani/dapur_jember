@@ -21,6 +21,8 @@ import com.leanecorps.dapurjember.feature.auth.navigation.PIN_LOCK_ROUTE
 import com.leanecorps.dapurjember.feature.auth.navigation.pinLockScreen
 import com.leanecorps.dapurjember.feature.floor.navigation.FLOOR_ROUTE
 import com.leanecorps.dapurjember.feature.floor.navigation.floorScreen
+import com.leanecorps.dapurjember.feature.inventory.navigation.inventoryScreen
+import com.leanecorps.dapurjember.feature.inventory.navigation.navigateToInventory
 import com.leanecorps.dapurjember.feature.menu.navigation.MENU_ROUTE
 import com.leanecorps.dapurjember.feature.menu.navigation.menuCsvImportScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.menuItemEditorScreen
@@ -92,6 +94,7 @@ fun DapurJemberNavHost(
             },
             onOpenMenu = { navController.navigate(MENU_ROUTE) },
             onOpenReports = { navController.navigateToReports() },
+            onOpenInventory = { navController.navigateToInventory() },
             onOpenSettings = { navController.navigateToPrinters() },
         )
         orderScreen(
@@ -114,6 +117,7 @@ fun DapurJemberNavHost(
         menuCsvImportScreen(onBack = { navController.popBackStack() })
         modifierGroupsScreen(onBack = { navController.popBackStack() })
         reportsScreen(onBack = { navController.popBackStack() })
+        inventoryScreen(onBack = { navController.popBackStack() })
     }
 }
 
