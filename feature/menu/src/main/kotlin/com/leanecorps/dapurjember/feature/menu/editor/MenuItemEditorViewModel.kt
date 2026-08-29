@@ -33,14 +33,16 @@ class MenuItemEditorViewModel @Inject constructor(
 
     val uiState: StateFlow<MenuItemEditorState> = combine(
         menuRepository.observeCategories(),
+        menuRepository.observeModifierGroups(),
         draft,
         done,
         minorUnits,
-    ) { categories, draftState, isDone, scale ->
+    ) { categories, groups, draftState, isDone, scale ->
         MenuItemEditorState(
             loading = draftState == null,
             isNew = itemId == null,
             categories = categories.map { CategoryOption(it.id, it.name) },
+            modifierGroups = groups.map { ModifierGroupOption(it.id, it.name) },
             currencyMinorUnits = scale,
             draft = draftState ?: MenuItemDraft(),
             done = isDone,
@@ -55,7 +57,9 @@ class MenuItemEditorViewModel @Inject constructor(
             draft.value = if (itemId == null) {
                 MenuItemDraft(categoryId = firstCategory)
             } else {
-                menuRepository.observeItemWithVariants(itemId).first()?.toDraft(scale)
+                val detail = menuRepository.observeItemWithVariants(itemId).first()
+                val attachedIds = menuRepository.observeItemModifierGroups(itemId).first().map { it.group.id }
+                detail?.toDraft(scale)?.copy(modifierGroupIds = attachedIds)
                     ?: MenuItemDraft(categoryId = firstCategory)
             }
         }
@@ -75,6 +79,16 @@ class MenuItemEditorViewModel @Inject constructor(
         current.copy(variants = current.variants.map { if (it.id == id) transform(it) else it })
     }
 
+    fun toggleModifierGroup(groupId: String) = edit { current ->
+        current.copy(
+            modifierGroupIds = if (groupId in current.modifierGroupIds) {
+                current.modifierGroupIds - groupId
+            } else {
+                current.modifierGroupIds + groupId
+            },
+        )
+    }
+
     fun save() {
         val state = uiState.value
         if (!state.canSave) return
@@ -85,6 +99,7 @@ class MenuItemEditorViewModel @Inject constructor(
                 item = current.toItem(newItemId),
                 variants = current.toVariants(newItemId, state.currencyMinorUnits),
             )
+            menuRepository.setItemModifierGroups(newItemId, current.modifierGroupIds)
             done.value = true
         }
     }

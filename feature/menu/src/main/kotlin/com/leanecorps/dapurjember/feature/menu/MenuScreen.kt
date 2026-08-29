@@ -40,6 +40,7 @@ import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
 fun MenuScreen(
     onEditItem: (itemId: String?) -> Unit,
     onImportCsv: () -> Unit,
+    onModifierGroups: () -> Unit,
     viewModel: MenuViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -49,6 +50,7 @@ fun MenuScreen(
         onAddCategory = viewModel::addCategory,
         onEditItem = onEditItem,
         onImportCsv = onImportCsv,
+        onModifierGroups = onModifierGroups,
     )
 }
 
@@ -59,6 +61,7 @@ internal fun MenuScreen(
     onAddCategory: (String) -> Unit,
     onEditItem: (itemId: String?) -> Unit,
     onImportCsv: () -> Unit,
+    onModifierGroups: () -> Unit,
 ) {
     var showCategoryDialog by remember { mutableStateOf(false) }
 
@@ -67,6 +70,7 @@ internal fun MenuScreen(
             TopAppBar(
                 title = { Text("Menu") },
                 actions = {
+                    TextButton(onClick = onModifierGroups) { Text("Modifiers") }
                     TextButton(onClick = onImportCsv) { Text("Import CSV") }
                     TextButton(onClick = { showCategoryDialog = true }) { Text("Add category") }
                     TextButton(onClick = { onEditItem(null) }) { Text("Add item") }

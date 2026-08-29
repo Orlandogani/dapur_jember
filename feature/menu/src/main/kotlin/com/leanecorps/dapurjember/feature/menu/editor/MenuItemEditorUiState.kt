@@ -12,6 +12,7 @@ data class MenuItemEditorState(
     val loading: Boolean = true,
     val isNew: Boolean = true,
     val categories: List<CategoryOption> = emptyList(),
+    val modifierGroups: List<ModifierGroupOption> = emptyList(),
     val currencyMinorUnits: Int = 0,
     val draft: MenuItemDraft = MenuItemDraft(),
     val done: Boolean = false,
@@ -25,6 +26,8 @@ data class MenuItemEditorState(
 
 data class CategoryOption(val id: String, val name: String)
 
+data class ModifierGroupOption(val id: String, val name: String)
+
 data class MenuItemDraft(
     val id: String? = null,
     val name: String = "",
@@ -32,6 +35,7 @@ data class MenuItemDraft(
     val available: Boolean = true,
     val taxExempt: Boolean = false,
     val variants: List<VariantDraft> = listOf(VariantDraft(name = "Regular")),
+    val modifierGroupIds: List<String> = emptyList(),
 )
 
 data class VariantDraft(

@@ -29,11 +29,15 @@ complexity:
       ['**/entity/**', '**/test/**', '**/androidTest/**', '**/core/testing/**',
        '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/*Recorder.kt']
   LongMethod:
-    # Migrations carry verbatim DDL; a NavHost is a flat declarative list of destinations.
+    # Migrations carry verbatim DDL; a NavHost is a flat declarative list of destinations;
+    # a @Composable is a declarative UI tree, not imperative logic.
     excludes: ['**/database/migration/**', '**/navigation/*NavHost.kt']
+    ignoreAnnotated: ['Composable']
   TooManyFunctions:
-    # Fluent builders (DAOs, the ESC/POS byte builder), Hilt aggregator modules and multi-step
-    # form action-bags are many small one-liner methods by design.
+    # Fluent builders (DAOs, the ESC/POS byte builder), Hilt aggregator modules, MVI
+    # ViewModels (one method per user intent) and multi-step form action-bags are many small
+    # one-liner methods by design.
     excludes:
       ['**/*Repository.kt', '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/EscPosBuilder.kt',
-       '**/di/*Module.kt', '**/setup/SetupWizard*.kt', '**/test/**', '**/androidTest/**']
+       '**/di/*Module.kt', '**/*ViewModel.kt', '**/setup/SetupWizard*.kt',
+       '**/test/**', '**/androidTest/**']

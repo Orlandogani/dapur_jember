@@ -59,6 +59,7 @@ fun MenuItemEditorScreen(
             onEditVariant = viewModel::editVariant,
             onAddVariant = viewModel::addVariant,
             onRemoveVariant = viewModel::removeVariant,
+            onToggleModifierGroup = viewModel::toggleModifierGroup,
             onSave = viewModel::save,
             onDelete = viewModel::delete,
         )
@@ -66,6 +67,7 @@ fun MenuItemEditorScreen(
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun EditorBody(
     state: MenuItemEditorState,
     modifier: Modifier,
@@ -73,6 +75,7 @@ private fun EditorBody(
     onEditVariant: (String, (VariantDraft) -> VariantDraft) -> Unit,
     onAddVariant: () -> Unit,
     onRemoveVariant: (String) -> Unit,
+    onToggleModifierGroup: (String) -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -121,6 +124,19 @@ private fun EditorBody(
             )
         }
         PosOutlinedButton(text = "Add variant", onClick = onAddVariant)
+
+        if (state.modifierGroups.isNotEmpty()) {
+            Text("Modifier groups", style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                state.modifierGroups.forEach { group ->
+                    FilterChip(
+                        selected = group.id in draft.modifierGroupIds,
+                        onClick = { onToggleModifierGroup(group.id) },
+                        label = { Text(group.name) },
+                    )
+                }
+            }
+        }
 
         Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (!state.isNew) {
