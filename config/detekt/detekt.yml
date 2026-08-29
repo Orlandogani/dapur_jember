@@ -14,6 +14,9 @@ style:
     active: false
   UnusedPrivateMember:
     active: false
+  ForbiddenComment:
+    # TODO markers are tracked in the plan / memory, not banned.
+    active: false
   MaxLineLength:
     # Room migrations and their tests carry verbatim DDL copied from the exported schema JSON.
     excludes: ['**/database/migration/**']
@@ -21,6 +24,11 @@ style:
 complexity:
   LongParameterList:
     ignoreAnnotated: ['Composable']
-    excludes: ['**/entity/**', '**/test/**', '**/androidTest/**', '**/core/testing/**']
+    # Repo impls take a DB handle + several DAOs + writers; DAO update-queries take a column list.
+    excludes:
+      ['**/entity/**', '**/test/**', '**/androidTest/**', '**/core/testing/**',
+       '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/*Recorder.kt']
   LongMethod:
     excludes: ['**/database/migration/**']
+  TooManyFunctions:
+    excludes: ['**/*Repository.kt', '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/test/**', '**/androidTest/**']
