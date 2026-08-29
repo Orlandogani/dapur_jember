@@ -8,6 +8,9 @@ android {
     namespace = "com.leanecorps.dapurjember.core.data"
 
     testOptions.unitTests.isIncludeAndroidResources = true // Robolectric
+
+    // Exported Room schemas, so MigrationTestHelper can validate migrations under Robolectric.
+    sourceSets.getByName("test").assets.srcDir(layout.projectDirectory.dir("schemas"))
 }
 
 dependencies {

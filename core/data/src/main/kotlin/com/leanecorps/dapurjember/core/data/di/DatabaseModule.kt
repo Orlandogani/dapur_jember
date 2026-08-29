@@ -5,14 +5,20 @@ import androidx.room.Room
 import com.leanecorps.dapurjember.core.data.crypto.DatabasePassphrase
 import com.leanecorps.dapurjember.core.data.crypto.KeystoreDatabasePassphrase
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
+import com.leanecorps.dapurjember.core.data.database.dao.CashMovementDao
 import com.leanecorps.dapurjember.core.data.database.dao.CategoryDao
 import com.leanecorps.dapurjember.core.data.database.dao.ChangeLogDao
+import com.leanecorps.dapurjember.core.data.database.dao.DiningTableDao
+import com.leanecorps.dapurjember.core.data.database.dao.FloorAreaDao
 import com.leanecorps.dapurjember.core.data.database.dao.ItemModifierGroupDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuItemDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuVariantDao
 import com.leanecorps.dapurjember.core.data.database.dao.ModifierDao
 import com.leanecorps.dapurjember.core.data.database.dao.ModifierGroupDao
+import com.leanecorps.dapurjember.core.data.database.dao.ShiftDao
+import com.leanecorps.dapurjember.core.data.database.dao.StaffDao
 import com.leanecorps.dapurjember.core.data.database.dao.StoreProfileDao
+import com.leanecorps.dapurjember.core.data.database.migration.ALL_MIGRATIONS
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,9 +49,10 @@ object DatabaseModule {
         passphrase: DatabasePassphrase,
     ): DapurJemberDatabase {
         System.loadLibrary("sqlcipher")
-        return Room.databaseBuilder(context, DapurJemberDatabase::class.java, DapurJemberDatabase.NAME)
+        val builder = Room.databaseBuilder(context, DapurJemberDatabase::class.java, DapurJemberDatabase.NAME)
             .openHelperFactory(SupportOpenHelperFactory(passphrase.getOrCreate()))
-            .build()
+        ALL_MIGRATIONS.forEach { builder.addMigrations(it) }
+        return builder.build()
     }
 
     @Provides
@@ -72,4 +79,19 @@ object DatabaseModule {
 
     @Provides
     fun provideChangeLogDao(db: DapurJemberDatabase): ChangeLogDao = db.changeLogDao()
+
+    @Provides
+    fun provideFloorAreaDao(db: DapurJemberDatabase): FloorAreaDao = db.floorAreaDao()
+
+    @Provides
+    fun provideDiningTableDao(db: DapurJemberDatabase): DiningTableDao = db.diningTableDao()
+
+    @Provides
+    fun provideStaffDao(db: DapurJemberDatabase): StaffDao = db.staffDao()
+
+    @Provides
+    fun provideShiftDao(db: DapurJemberDatabase): ShiftDao = db.shiftDao()
+
+    @Provides
+    fun provideCashMovementDao(db: DapurJemberDatabase): CashMovementDao = db.cashMovementDao()
 }
