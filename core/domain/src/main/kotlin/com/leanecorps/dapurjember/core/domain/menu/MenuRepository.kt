@@ -26,6 +26,12 @@ interface MenuRepository {
 
     suspend fun upsertVariant(variant: MenuVariant)
 
+    /**
+     * Saves an item and its full variant list in one transaction (S14 item editor): variants
+     * not in [variants] are soft-deleted. FR-M4 — an item always keeps at least one variant.
+     */
+    suspend fun saveItemWithVariants(item: MenuItem, variants: List<MenuVariant>)
+
     /** FR-M2 — flip the sold-out toggle in one tap from the order screen. */
     suspend fun setItemAvailability(itemId: String, available: Boolean)
 

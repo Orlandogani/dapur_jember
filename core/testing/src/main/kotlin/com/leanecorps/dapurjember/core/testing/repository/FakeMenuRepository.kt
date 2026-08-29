@@ -48,6 +48,15 @@ class FakeMenuRepository : MenuRepository {
     override suspend fun upsertVariant(variant: MenuVariant) =
         variants.update { it.filterNot { v -> v.id == variant.id } + variant }
 
+    override suspend fun saveItemWithVariants(item: MenuItem, newVariants: List<MenuVariant>) {
+        items.update { it.filterNot { i -> i.id == item.id } + item }
+        val keep = newVariants.map { it.id }.toSet()
+        variants.update { current ->
+            current.filterNot { it.menuItemId == item.id && it.id !in keep }
+                .filterNot { it.id in keep } + newVariants
+        }
+    }
+
     override suspend fun setItemAvailability(itemId: String, available: Boolean) =
         items.update { list -> list.map { if (it.id == itemId) it.copy(available = available) else it } }
 

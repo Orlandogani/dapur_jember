@@ -102,6 +102,30 @@ class MenuRepositoryImplTest {
     }
 
     @Test
+    fun `saveItemWithVariants upserts kept variants and soft-deletes the rest in one shot`() = runTest {
+        repo.upsertCategory(Category(id = "c1", name = "Food"))
+        val small = MenuVariant(id = "v1", menuItemId = "i1", name = "Small", price = Money(12_000))
+        val large = MenuVariant(id = "v2", menuItemId = "i1", name = "Large", price = Money(18_000))
+        repo.saveItemWithVariants(MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"), listOf(small, large))
+        time.advanceBy(1)
+
+        // Rename the item, keep Small (re-priced), drop Large, add Family.
+        repo.saveItemWithVariants(
+            MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng Spesial"),
+            listOf(
+                small.copy(price = Money(13_000)),
+                MenuVariant(id = "v3", menuItemId = "i1", name = "Family", price = Money(30_000)),
+            ),
+        )
+
+        val detail = repo.observeItemWithVariants("i1").first()!!
+        assertEquals("Nasi Goreng Spesial", detail.item.name)
+        assertEquals(listOf("Family" to 30_000L, "Small" to 13_000L), detail.variants.map { it.name to it.price.minor })
+        assertNull(db.menuVariantDao().getById("v2"))
+        assertEquals("menu_variant:DELETE", changeOps().last())
+    }
+
+    @Test
     fun `observeItemWithVariants combines the item with its variants`() = runTest {
         repo.upsertCategory(Category(id = "c1", name = "Food"))
         repo.upsertItem(MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"))

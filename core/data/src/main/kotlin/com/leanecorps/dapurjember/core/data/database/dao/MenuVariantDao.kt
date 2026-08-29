@@ -24,6 +24,12 @@ interface MenuVariantDao {
     suspend fun getById(id: String): MenuVariantEntity?
 
     @Query(
+        "SELECT * FROM menu_variant WHERE menu_item_id = :menuItemId AND deleted_at IS NULL " +
+            "ORDER BY sort_order, name",
+    )
+    suspend fun getForItem(menuItemId: String): List<MenuVariantEntity>
+
+    @Query(
         "SELECT v.* FROM menu_variant v " +
             "INNER JOIN menu_item i ON i.id = v.menu_item_id " +
             "WHERE i.category_id = :categoryId AND v.deleted_at IS NULL AND i.deleted_at IS NULL " +

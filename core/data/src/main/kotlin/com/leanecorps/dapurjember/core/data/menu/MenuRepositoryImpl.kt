@@ -81,6 +81,28 @@ internal class MenuRepositoryImpl @Inject constructor(
         changeLog.record("menu_variant", variant.id, opFor(existing), now)
     }
 
+    override suspend fun saveItemWithVariants(item: MenuItem, variants: List<MenuVariant>) = db.withTransaction {
+        val now = time.nowMillis()
+        val device = deviceIds.deviceId()
+
+        val existingItem = menuItemDao.getById(item.id)
+        menuItemDao.upsert(item.toEntity(existingItem, now, device))
+        changeLog.record("menu_item", item.id, opFor(existingItem), now)
+
+        val keepIds = variants.map { it.id }.toSet()
+        variants.forEach { variant ->
+            val existingVariant = menuVariantDao.getById(variant.id)
+            menuVariantDao.upsert(variant.toEntity(existingVariant, now, device))
+            changeLog.record("menu_variant", variant.id, opFor(existingVariant), now)
+        }
+        menuVariantDao.getForItem(item.id)
+            .filter { it.id !in keepIds }
+            .forEach { removed ->
+                menuVariantDao.softDelete(removed.id, now)
+                changeLog.record("menu_variant", removed.id, ChangeOp.DELETE, now)
+            }
+    }
+
     override suspend fun setItemAvailability(itemId: String, available: Boolean) = db.withTransaction {
         val existing = menuItemDao.getById(itemId) ?: return@withTransaction
         val now = time.nowMillis()
