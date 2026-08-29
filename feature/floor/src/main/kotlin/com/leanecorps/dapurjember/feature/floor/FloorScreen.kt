@@ -34,11 +34,17 @@ import com.leanecorps.dapurjember.core.domain.floor.TableState
 @Composable
 fun FloorScreen(
     onOpenTable: (tableId: String) -> Unit,
+    onOpenMenu: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: FloorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    FloorScreen(state = state, onOpenTable = onOpenTable, onOpenSettings = onOpenSettings)
+    FloorScreen(
+        state = state,
+        onOpenTable = onOpenTable,
+        onOpenMenu = onOpenMenu,
+        onOpenSettings = onOpenSettings,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,13 +52,17 @@ fun FloorScreen(
 internal fun FloorScreen(
     state: FloorUiState,
     onOpenTable: (tableId: String) -> Unit,
+    onOpenMenu: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Floor") },
-                actions = { TextButton(onClick = onOpenSettings) { Text("Settings") } },
+                actions = {
+                    TextButton(onClick = onOpenMenu) { Text("Menu") }
+                    TextButton(onClick = onOpenSettings) { Text("Settings") }
+                },
             )
         },
     ) { padding ->

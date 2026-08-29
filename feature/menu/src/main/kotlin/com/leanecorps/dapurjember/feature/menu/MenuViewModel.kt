@@ -2,6 +2,8 @@ package com.leanecorps.dapurjember.feature.menu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.leanecorps.dapurjember.core.common.id.UuidV7
+import com.leanecorps.dapurjember.core.domain.menu.Category
 import com.leanecorps.dapurjember.core.domain.menu.MenuRepository
 import com.leanecorps.dapurjember.core.domain.menu.ObserveMenuUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,6 +31,15 @@ class MenuViewModel @Inject constructor(
     /** FR-M2 — toggle sold-out from the list. */
     fun setAvailability(itemId: String, available: Boolean) {
         viewModelScope.launch { menuRepository.setItemAvailability(itemId, available) }
+    }
+
+    fun addCategory(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            val nextOrder = uiState.value.sections.size
+            menuRepository.upsertCategory(Category(id = UuidV7.generate(), name = trimmed, sortOrder = nextOrder))
+        }
     }
 
     private companion object {

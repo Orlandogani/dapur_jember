@@ -9,9 +9,10 @@ const val FLOOR_ROUTE = "floor"
 
 fun NavGraphBuilder.floorScreen(
     onOpenTable: (tableId: String) -> Unit,
+    onOpenMenu: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     composable(route = FLOOR_ROUTE) {
-        FloorScreen(onOpenTable = onOpenTable, onOpenSettings = onOpenSettings)
+        FloorScreen(onOpenTable = onOpenTable, onOpenMenu = onOpenMenu, onOpenSettings = onOpenSettings)
     }
 }

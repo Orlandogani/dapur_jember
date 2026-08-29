@@ -21,7 +21,10 @@ import com.leanecorps.dapurjember.feature.auth.navigation.PIN_LOCK_ROUTE
 import com.leanecorps.dapurjember.feature.auth.navigation.pinLockScreen
 import com.leanecorps.dapurjember.feature.floor.navigation.FLOOR_ROUTE
 import com.leanecorps.dapurjember.feature.floor.navigation.floorScreen
+import com.leanecorps.dapurjember.feature.menu.navigation.MENU_ROUTE
+import com.leanecorps.dapurjember.feature.menu.navigation.menuItemEditorScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.menuScreen
+import com.leanecorps.dapurjember.feature.menu.navigation.navigateToMenuItemEditor
 import com.leanecorps.dapurjember.feature.order.navigation.navigateToOrder
 import com.leanecorps.dapurjember.feature.order.navigation.orderScreen
 import com.leanecorps.dapurjember.feature.payment.navigation.navigateToPayment
@@ -44,15 +47,8 @@ fun DapurJemberNavHost(
 ) {
     val scope = rememberCoroutineScope()
     val hasOpenShift by viewModel.hasOpenShift.collectAsStateWithLifecycle()
-    val decidedStart by viewModel.startRoute.collectAsStateWithLifecycle()
 
-    // Lock in the first non-null decision so a later profile change can't swap the graph root.
-    var startRoute by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(decidedStart) {
-        if (startRoute == null) startRoute = decidedStart
-    }
-
-    val start = startRoute
+    val start = lockedStartRoute(viewModel)
     if (start == null) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         return
@@ -88,6 +84,7 @@ fun DapurJemberNavHost(
                         .onSuccess { navController.navigateToOrder(it) }
                 }
             },
+            onOpenMenu = { navController.navigate(MENU_ROUTE) },
             onOpenSettings = { navController.navigateToPrinters() },
         )
         orderScreen(
@@ -101,6 +98,22 @@ fun DapurJemberNavHost(
             },
         )
         printersScreen(onBack = { navController.popBackStack() })
-        menuScreen()
+        menuScreen(onEditItem = { itemId -> navController.navigateToMenuItemEditor(itemId) })
+        menuItemEditorScreen(onDone = { navController.popBackStack() })
     }
+}
+
+/**
+ * The first non-null start-route decision, held stable so a later `store_profile` change
+ * (e.g. finishing the setup wizard) can't swap the NavHost's graph root out from under it.
+ * Returns null while the DB is still being read.
+ */
+@Composable
+private fun lockedStartRoute(viewModel: AppNavHostViewModel): String? {
+    val decided by viewModel.startRoute.collectAsStateWithLifecycle()
+    var locked by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(decided) {
+        if (locked == null) locked = decided
+    }
+    return locked
 }
