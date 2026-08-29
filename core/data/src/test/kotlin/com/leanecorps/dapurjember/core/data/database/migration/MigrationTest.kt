@@ -93,10 +93,25 @@ class MigrationTest {
     }
 
     @Test
-    fun `migrate 1 to 3 chained validates`() {
-        val dbName = "migration-1-3.db"
+    fun `migrate 3 to 4 adds the audit log and inventory tables`() {
+        val dbName = "migration-3-4.db"
+        helper.createDatabase(dbName, 3).close()
+
+        val migrated = helper.runMigrationsAndValidate(dbName, 4, true, Migration3To4)
+        for (table in listOf("audit_log", "supplier", "ingredient", "recipe_line", "stock_movement")) {
+            migrated.query("SELECT COUNT(*) FROM $table").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        }
+        migrated.close()
+    }
+
+    @Test
+    fun `migrate 1 to 4 chained validates`() {
+        val dbName = "migration-1-4.db"
         helper.createDatabase(dbName, 1).close()
 
-        helper.runMigrationsAndValidate(dbName, 3, true, Migration1To2, Migration2To3).close()
+        helper.runMigrationsAndValidate(dbName, 4, true, Migration1To2, Migration2To3, Migration3To4).close()
     }
 }

@@ -20,6 +20,7 @@ dependencies {
 
     implementation(libs.sqlcipher.android)
     implementation(libs.androidx.sqlite)
+    implementation(libs.bcrypt)
 
     testImplementation(project(":core:testing"))
 }

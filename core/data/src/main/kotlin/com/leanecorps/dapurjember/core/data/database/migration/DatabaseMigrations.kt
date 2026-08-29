@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * The SQL below is copied verbatim from `schemas/…/2.json` (`${'$'}{TABLE_NAME}` replaced with the
  * real table name), so `MigrationTestHelper.runMigrationsAndValidate` accepts it byte-for-byte.
  */
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3)
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(Migration1To2, Migration2To3, Migration3To4)
 
 /** v1 → v2: adds the floor, staff and shift tables. No existing table is touched. */
 internal object Migration1To2 : Migration(1, 2) {
@@ -162,5 +162,77 @@ internal object Migration2To3 : Migration(2, 3) {
             "CREATE INDEX IF NOT EXISTS `index_discount_authorised_by_staff_id` " +
                 "ON `discount` (`authorised_by_staff_id`)",
         )
+    }
+}
+
+/** v3 → v4: adds the audit log and the inventory tables (supplier, ingredient, recipe_line, stock_movement). */
+internal object Migration3To4 : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `audit_log` (`id` TEXT NOT NULL, `actor_staff_id` TEXT NOT NULL, " +
+                "`action` TEXT NOT NULL, `entity_type` TEXT NOT NULL, `entity_id` TEXT NOT NULL, " +
+                "`before_json` TEXT, `after_json` TEXT, `reason` TEXT, `created_at` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`), FOREIGN KEY(`actor_staff_id`) REFERENCES `staff`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_log_actor_staff_id` ON `audit_log` (`actor_staff_id`)")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_audit_log_entity_type_entity_id` " +
+                "ON `audit_log` (`entity_type`, `entity_id`)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_log_created_at` ON `audit_log` (`created_at`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `supplier` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `phone` TEXT, " +
+                "`note` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `deleted_at` INTEGER, " +
+                "`device_id` TEXT NOT NULL, `revision` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        )
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `ingredient` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                "`base_unit` TEXT NOT NULL, `purchase_unit` TEXT NOT NULL, `purchase_to_base_factor` REAL NOT NULL, " +
+                "`current_stock_base` REAL NOT NULL, `avg_cost_per_base_minor` INTEGER NOT NULL, " +
+                "`low_stock_threshold_base` REAL NOT NULL, `supplier_id` TEXT, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, `deleted_at` INTEGER, `device_id` TEXT NOT NULL, " +
+                "`revision` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`supplier_id`) " +
+                "REFERENCES `supplier`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_ingredient_supplier_id` ON `ingredient` (`supplier_id`)")
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `recipe_line` (`id` TEXT NOT NULL, `menu_variant_id` TEXT NOT NULL, " +
+                "`ingredient_id` TEXT NOT NULL, `qty_base` REAL NOT NULL, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, `deleted_at` INTEGER, `device_id` TEXT NOT NULL, " +
+                "`revision` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`menu_variant_id`) " +
+                "REFERENCES `menu_variant`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`ingredient_id`) REFERENCES `ingredient`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_recipe_line_menu_variant_id` ON `recipe_line` (`menu_variant_id`)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_recipe_line_ingredient_id` ON `recipe_line` (`ingredient_id`)")
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_recipe_line_menu_variant_id_ingredient_id` " +
+                "ON `recipe_line` (`menu_variant_id`, `ingredient_id`)",
+        )
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `stock_movement` (`id` TEXT NOT NULL, `ingredient_id` TEXT NOT NULL, " +
+                "`qty_base_delta` REAL NOT NULL, `reason` TEXT NOT NULL, `order_line_id` TEXT, " +
+                "`unit_cost_minor` INTEGER NOT NULL, `staff_id` TEXT NOT NULL, `created_at` INTEGER NOT NULL, " +
+                "`updated_at` INTEGER NOT NULL, `deleted_at` INTEGER, `device_id` TEXT NOT NULL, " +
+                "`revision` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`ingredient_id`) " +
+                "REFERENCES `ingredient`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`order_line_id`) REFERENCES `order_line`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`staff_id`) REFERENCES `staff`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_stock_movement_ingredient_id_created_at` " +
+                "ON `stock_movement` (`ingredient_id`, `created_at`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_stock_movement_order_line_id` ON `stock_movement` (`order_line_id`)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stock_movement_staff_id` ON `stock_movement` (`staff_id`)")
     }
 }

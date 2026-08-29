@@ -5,12 +5,14 @@ import androidx.room.Room
 import com.leanecorps.dapurjember.core.data.crypto.DatabasePassphrase
 import com.leanecorps.dapurjember.core.data.crypto.KeystoreDatabasePassphrase
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
+import com.leanecorps.dapurjember.core.data.database.dao.AuditLogDao
 import com.leanecorps.dapurjember.core.data.database.dao.CashMovementDao
 import com.leanecorps.dapurjember.core.data.database.dao.CategoryDao
 import com.leanecorps.dapurjember.core.data.database.dao.ChangeLogDao
 import com.leanecorps.dapurjember.core.data.database.dao.DiningTableDao
 import com.leanecorps.dapurjember.core.data.database.dao.DiscountDao
 import com.leanecorps.dapurjember.core.data.database.dao.FloorAreaDao
+import com.leanecorps.dapurjember.core.data.database.dao.IngredientDao
 import com.leanecorps.dapurjember.core.data.database.dao.ItemModifierGroupDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuItemDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuVariantDao
@@ -20,9 +22,12 @@ import com.leanecorps.dapurjember.core.data.database.dao.OrderDao
 import com.leanecorps.dapurjember.core.data.database.dao.OrderLineDao
 import com.leanecorps.dapurjember.core.data.database.dao.OrderLineModifierDao
 import com.leanecorps.dapurjember.core.data.database.dao.PaymentDao
+import com.leanecorps.dapurjember.core.data.database.dao.RecipeLineDao
 import com.leanecorps.dapurjember.core.data.database.dao.ShiftDao
 import com.leanecorps.dapurjember.core.data.database.dao.StaffDao
+import com.leanecorps.dapurjember.core.data.database.dao.StockMovementDao
 import com.leanecorps.dapurjember.core.data.database.dao.StoreProfileDao
+import com.leanecorps.dapurjember.core.data.database.dao.SupplierDao
 import com.leanecorps.dapurjember.core.data.database.migration.ALL_MIGRATIONS
 import dagger.Module
 import dagger.Provides
@@ -115,4 +120,19 @@ object DatabaseModule {
 
     @Provides
     fun provideDiscountDao(db: DapurJemberDatabase): DiscountDao = db.discountDao()
+
+    @Provides
+    fun provideAuditLogDao(db: DapurJemberDatabase): AuditLogDao = db.auditLogDao()
+
+    @Provides
+    fun provideSupplierDao(db: DapurJemberDatabase): SupplierDao = db.supplierDao()
+
+    @Provides
+    fun provideIngredientDao(db: DapurJemberDatabase): IngredientDao = db.ingredientDao()
+
+    @Provides
+    fun provideRecipeLineDao(db: DapurJemberDatabase): RecipeLineDao = db.recipeLineDao()
+
+    @Provides
+    fun provideStockMovementDao(db: DapurJemberDatabase): StockMovementDao = db.stockMovementDao()
 }
