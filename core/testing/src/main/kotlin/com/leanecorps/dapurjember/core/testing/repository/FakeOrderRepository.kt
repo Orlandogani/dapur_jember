@@ -7,6 +7,7 @@ import com.leanecorps.dapurjember.core.domain.order.OpenOrderParams
 import com.leanecorps.dapurjember.core.domain.order.Order
 import com.leanecorps.dapurjember.core.domain.order.OrderEvent
 import com.leanecorps.dapurjember.core.domain.order.OrderLine
+import com.leanecorps.dapurjember.core.domain.order.OrderLineModifier
 import com.leanecorps.dapurjember.core.domain.order.OrderRepository
 import com.leanecorps.dapurjember.core.domain.order.OrderState
 import com.leanecorps.dapurjember.core.domain.order.OrderStateMachine
@@ -84,7 +85,14 @@ class FakeOrderRepository : OrderRepository {
             variantName = "Regular",
             unitPrice = Money(10_000),
             quantity = params.quantity,
-            modifiers = emptyList(),
+            modifiers = params.modifierIds.map { modifierId ->
+                OrderLineModifier(
+                    id = nextId("mod"),
+                    modifierId = modifierId,
+                    name = modifierId,
+                    priceDelta = Money.ZERO,
+                )
+            },
             note = params.note,
             course = params.course,
             sentAt = null,

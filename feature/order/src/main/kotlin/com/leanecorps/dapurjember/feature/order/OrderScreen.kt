@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,6 +50,80 @@ fun OrderScreen(
         onSend = viewModel::send,
         onCheckout = onCheckout,
     )
+    state.picker?.let { picker ->
+        ModifierPickerDialog(
+            picker = picker,
+            onPickVariant = viewModel::pickVariant,
+            onToggleModifier = viewModel::toggleModifier,
+            onConfirm = viewModel::confirmPicker,
+            onDismiss = viewModel::dismissPicker,
+        )
+    }
+}
+
+@Composable
+private fun ModifierPickerDialog(
+    picker: ModifierPickerUiState,
+    onPickVariant: (String) -> Unit,
+    onToggleModifier: (String, String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { PosButton(text = "Add", onClick = onConfirm, enabled = picker.canConfirm) },
+        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
+        title = { Text(picker.itemName) },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (picker.variants.size > 1) {
+                    item {
+                        PickerSection(
+                            title = "Size",
+                            options = picker.variants.map { it.id to it.name },
+                            selected = setOf(picker.selectedVariantId),
+                            onToggle = { onPickVariant(it) },
+                        )
+                    }
+                }
+                items(picker.groups, key = { it.id }) { group ->
+                    val label = buildString {
+                        append(group.name)
+                        if (group.required) append(" *")
+                        append(if (group.singleSelect) "  (pick one)" else "  (pick any)")
+                    }
+                    PickerSection(
+                        title = label,
+                        options = group.modifiers.map { it.id to it.name },
+                        selected = picker.selectedModifierIds,
+                        onToggle = { onToggleModifier(group.id, it) },
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun PickerSection(
+    title: String,
+    options: List<Pair<String, String>>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+) {
+    Column {
+        Text(title, style = MaterialTheme.typography.labelLarge)
+        Column {
+            options.forEach { (id, name) ->
+                FilterChip(
+                    selected = id in selected,
+                    onClick = { onToggle(id) },
+                    label = { Text(name) },
+                    modifier = Modifier.padding(vertical = 2.dp),
+                )
+            }
+        }
+    }
 }
 
 @Composable

@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leanecorps.dapurjember.core.domain.menu.MenuBoardItem
+import com.leanecorps.dapurjember.core.domain.menu.MenuItemWithVariants
 import com.leanecorps.dapurjember.core.domain.menu.MenuRepository
+import com.leanecorps.dapurjember.core.domain.menu.ModifierGroupWithModifiers
 import com.leanecorps.dapurjember.core.domain.menu.ObserveMenuUseCase
 import com.leanecorps.dapurjember.core.domain.order.AddLineParams
 import com.leanecorps.dapurjember.core.domain.order.Order
@@ -17,9 +19,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,13 +40,14 @@ class OrderViewModel @Inject constructor(
 
     private val orderId: String = requireNotNull(savedStateHandle[ORDER_ID_ARG])
     private val selectedCategoryId = MutableStateFlow<String?>(null)
+    private val picker = MutableStateFlow<ModifierPickerUiState?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val board = selectedCategoryId.flatMapLatest { categoryId ->
         if (categoryId == null) flowOf(emptyList()) else menuRepository.observeMenuBoard(categoryId)
     }
 
-    val uiState: StateFlow<OrderUiState> = combine(
+    private val core = combine(
         orderRepository.observeOrder(orderId),
         observeMenu(),
         selectedCategoryId,
@@ -67,6 +72,10 @@ class OrderViewModel @Inject constructor(
                 totals = order.toTotalsUi(),
             )
         }
+    }
+
+    val uiState: StateFlow<OrderUiState> = combine(core, picker) { base, pickerState ->
+        base.copy(picker = pickerState)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), OrderUiState())
 
     fun selectCategory(categoryId: String) {
@@ -74,18 +83,83 @@ class OrderViewModel @Inject constructor(
     }
 
     fun addTile(tile: BoardTileUi) {
-        val variantId = tile.addVariantId ?: return
         viewModelScope.launch {
-            val staffId = sessionRepository.currentSession()?.staffId ?: return@launch
-            orderRepository.addLine(
-                AddLineParams(
-                    orderId = orderId,
-                    menuVariantId = variantId,
-                    quantity = 1,
-                    addedByStaffId = staffId,
-                ),
+            val detail = menuRepository.observeItemWithVariants(tile.itemId).first() ?: return@launch
+            val groups = menuRepository.observeItemModifierGroups(tile.itemId).first()
+            if (detail.variants.size <= 1 && groups.isEmpty()) {
+                val variantId = detail.variants.firstOrNull()?.id ?: return@launch
+                addLine(variantId, emptyList())
+            } else {
+                picker.value = buildPicker(detail, groups)
+            }
+        }
+    }
+
+    fun pickVariant(variantId: String) = picker.update { it?.copy(selectedVariantId = variantId) }
+
+    fun toggleModifier(groupId: String, modifierId: String) = picker.update { current ->
+        current ?: return@update null
+        val group = current.groups.first { it.id == groupId }
+        val selected = current.selectedModifierIds
+        val next = when {
+            modifierId in selected -> selected - modifierId
+            group.singleSelect -> selected - group.modifierIds.toSet() + modifierId
+            else -> selected + modifierId
+        }
+        current.copy(selectedModifierIds = next)
+    }
+
+    fun dismissPicker() {
+        picker.value = null
+    }
+
+    fun confirmPicker() {
+        val current = picker.value ?: return
+        if (!current.canConfirm) return
+        viewModelScope.launch {
+            addLine(current.selectedVariantId, current.selectedModifierIds.toList())
+            picker.value = null
+        }
+    }
+
+    private suspend fun addLine(variantId: String, modifierIds: List<String>) {
+        val staffId = sessionRepository.currentSession()?.staffId ?: return
+        orderRepository.addLine(
+            AddLineParams(
+                orderId = orderId,
+                menuVariantId = variantId,
+                quantity = 1,
+                addedByStaffId = staffId,
+                modifierIds = modifierIds,
+            ),
+        )
+    }
+
+    private fun buildPicker(
+        detail: MenuItemWithVariants,
+        groups: List<ModifierGroupWithModifiers>,
+    ): ModifierPickerUiState {
+        val variants = detail.variants.sortedBy { it.sortOrder }
+            .map { PickerVariantUi(it.id, it.name, it.price.minor) }
+        val pickerGroups = groups.map { g ->
+            PickerGroupUi(
+                id = g.group.id,
+                name = g.group.name,
+                required = g.group.required,
+                singleSelect = g.group.singleSelect,
+                minSelect = g.group.minSelect,
+                maxSelect = g.group.maxSelect,
+                modifiers = g.modifiers.map { PickerModifierUi(it.id, it.name, it.priceDelta.minor) },
             )
         }
+        val defaults = groups.flatMap { g -> g.modifiers.filter { it.defaultSelected }.map { it.id } }.toSet()
+        return ModifierPickerUiState(
+            itemName = detail.item.name,
+            variants = variants,
+            selectedVariantId = variants.first().id,
+            groups = pickerGroups,
+            selectedModifierIds = defaults,
+        )
     }
 
     fun increment(line: OrderLineUi) = setQuantity(line, line.quantity + 1)
@@ -117,7 +191,13 @@ private fun MenuBoardItem.toTile() = BoardTileUi(
 
 private fun OrderLine.toUi() = OrderLineUi(
     id = id,
-    name = if (variantName == "Regular") itemName else "$itemName ($variantName)",
+    name = buildString {
+        append(if (variantName == "Regular") itemName else "$itemName ($variantName)")
+        if (modifiers.isNotEmpty()) {
+            append(" · ")
+            append(modifiers.joinToString(", ") { m -> m.name })
+        }
+    },
     quantity = quantity,
     lineTotalMinor = (effectiveUnitPrice * quantity).minor,
     sent = sentAt != null,

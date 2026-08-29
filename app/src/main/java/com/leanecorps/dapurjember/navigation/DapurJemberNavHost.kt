@@ -25,8 +25,10 @@ import com.leanecorps.dapurjember.feature.menu.navigation.MENU_ROUTE
 import com.leanecorps.dapurjember.feature.menu.navigation.menuCsvImportScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.menuItemEditorScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.menuScreen
+import com.leanecorps.dapurjember.feature.menu.navigation.modifierGroupsScreen
 import com.leanecorps.dapurjember.feature.menu.navigation.navigateToMenuCsvImport
 import com.leanecorps.dapurjember.feature.menu.navigation.navigateToMenuItemEditor
+import com.leanecorps.dapurjember.feature.menu.navigation.navigateToModifierGroups
 import com.leanecorps.dapurjember.feature.order.navigation.navigateToOrder
 import com.leanecorps.dapurjember.feature.order.navigation.orderScreen
 import com.leanecorps.dapurjember.feature.payment.navigation.navigateToPayment
@@ -103,9 +105,11 @@ fun DapurJemberNavHost(
         menuScreen(
             onEditItem = { itemId -> navController.navigateToMenuItemEditor(itemId) },
             onImportCsv = { navController.navigateToMenuCsvImport() },
+            onModifierGroups = { navController.navigateToModifierGroups() },
         )
         menuItemEditorScreen(onDone = { navController.popBackStack() })
         menuCsvImportScreen(onBack = { navController.popBackStack() })
+        modifierGroupsScreen(onBack = { navController.popBackStack() })
     }
 }
 
