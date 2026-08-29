@@ -14,8 +14,13 @@ style:
     active: false
   UnusedPrivateMember:
     active: false
+  MaxLineLength:
+    # Room migrations and their tests carry verbatim DDL copied from the exported schema JSON.
+    excludes: ['**/database/migration/**']
 
 complexity:
   LongParameterList:
     ignoreAnnotated: ['Composable']
     excludes: ['**/entity/**', '**/test/**', '**/androidTest/**', '**/core/testing/**']
+  LongMethod:
+    excludes: ['**/database/migration/**']

@@ -16,5 +16,9 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 # Contentious multi-line-signature formatting rule; we keep builder params one-per-line.
 ktlint_standard_function-signature = disabled
 
+# Room migrations + their tests carry verbatim DDL copied from the exported schema JSON.
+[**/database/migration/**.kt]
+ktlint_standard_max-line-length = disabled
+
 [*.{yml,yaml,json}]
 indent_size = 2

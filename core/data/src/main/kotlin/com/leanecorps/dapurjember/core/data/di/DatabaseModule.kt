@@ -9,12 +9,17 @@ import com.leanecorps.dapurjember.core.data.database.dao.CashMovementDao
 import com.leanecorps.dapurjember.core.data.database.dao.CategoryDao
 import com.leanecorps.dapurjember.core.data.database.dao.ChangeLogDao
 import com.leanecorps.dapurjember.core.data.database.dao.DiningTableDao
+import com.leanecorps.dapurjember.core.data.database.dao.DiscountDao
 import com.leanecorps.dapurjember.core.data.database.dao.FloorAreaDao
 import com.leanecorps.dapurjember.core.data.database.dao.ItemModifierGroupDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuItemDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuVariantDao
 import com.leanecorps.dapurjember.core.data.database.dao.ModifierDao
 import com.leanecorps.dapurjember.core.data.database.dao.ModifierGroupDao
+import com.leanecorps.dapurjember.core.data.database.dao.OrderDao
+import com.leanecorps.dapurjember.core.data.database.dao.OrderLineDao
+import com.leanecorps.dapurjember.core.data.database.dao.OrderLineModifierDao
+import com.leanecorps.dapurjember.core.data.database.dao.PaymentDao
 import com.leanecorps.dapurjember.core.data.database.dao.ShiftDao
 import com.leanecorps.dapurjember.core.data.database.dao.StaffDao
 import com.leanecorps.dapurjember.core.data.database.dao.StoreProfileDao
@@ -94,4 +99,20 @@ object DatabaseModule {
 
     @Provides
     fun provideCashMovementDao(db: DapurJemberDatabase): CashMovementDao = db.cashMovementDao()
+
+    @Provides
+    fun provideOrderDao(db: DapurJemberDatabase): OrderDao = db.orderDao()
+
+    @Provides
+    fun provideOrderLineDao(db: DapurJemberDatabase): OrderLineDao = db.orderLineDao()
+
+    @Provides
+    fun provideOrderLineModifierDao(db: DapurJemberDatabase): OrderLineModifierDao =
+        db.orderLineModifierDao()
+
+    @Provides
+    fun providePaymentDao(db: DapurJemberDatabase): PaymentDao = db.paymentDao()
+
+    @Provides
+    fun provideDiscountDao(db: DapurJemberDatabase): DiscountDao = db.discountDao()
 }

@@ -6,12 +6,17 @@ import com.leanecorps.dapurjember.core.data.database.dao.CashMovementDao
 import com.leanecorps.dapurjember.core.data.database.dao.CategoryDao
 import com.leanecorps.dapurjember.core.data.database.dao.ChangeLogDao
 import com.leanecorps.dapurjember.core.data.database.dao.DiningTableDao
+import com.leanecorps.dapurjember.core.data.database.dao.DiscountDao
 import com.leanecorps.dapurjember.core.data.database.dao.FloorAreaDao
 import com.leanecorps.dapurjember.core.data.database.dao.ItemModifierGroupDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuItemDao
 import com.leanecorps.dapurjember.core.data.database.dao.MenuVariantDao
 import com.leanecorps.dapurjember.core.data.database.dao.ModifierDao
 import com.leanecorps.dapurjember.core.data.database.dao.ModifierGroupDao
+import com.leanecorps.dapurjember.core.data.database.dao.OrderDao
+import com.leanecorps.dapurjember.core.data.database.dao.OrderLineDao
+import com.leanecorps.dapurjember.core.data.database.dao.OrderLineModifierDao
+import com.leanecorps.dapurjember.core.data.database.dao.PaymentDao
 import com.leanecorps.dapurjember.core.data.database.dao.ShiftDao
 import com.leanecorps.dapurjember.core.data.database.dao.StaffDao
 import com.leanecorps.dapurjember.core.data.database.dao.StoreProfileDao
@@ -19,12 +24,17 @@ import com.leanecorps.dapurjember.core.data.database.entity.CashMovementEntity
 import com.leanecorps.dapurjember.core.data.database.entity.CategoryEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ChangeLogEntity
 import com.leanecorps.dapurjember.core.data.database.entity.DiningTableEntity
+import com.leanecorps.dapurjember.core.data.database.entity.DiscountEntity
 import com.leanecorps.dapurjember.core.data.database.entity.FloorAreaEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ItemModifierGroupEntity
 import com.leanecorps.dapurjember.core.data.database.entity.MenuItemEntity
 import com.leanecorps.dapurjember.core.data.database.entity.MenuVariantEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ModifierEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ModifierGroupEntity
+import com.leanecorps.dapurjember.core.data.database.entity.OrderEntity
+import com.leanecorps.dapurjember.core.data.database.entity.OrderLineEntity
+import com.leanecorps.dapurjember.core.data.database.entity.OrderLineModifierEntity
+import com.leanecorps.dapurjember.core.data.database.entity.PaymentEntity
 import com.leanecorps.dapurjember.core.data.database.entity.ShiftEntity
 import com.leanecorps.dapurjember.core.data.database.entity.StaffEntity
 import com.leanecorps.dapurjember.core.data.database.entity.StoreProfileEntity
@@ -44,8 +54,13 @@ import com.leanecorps.dapurjember.core.data.database.entity.StoreProfileEntity
         StaffEntity::class,
         ShiftEntity::class,
         CashMovementEntity::class,
+        OrderEntity::class,
+        OrderLineEntity::class,
+        OrderLineModifierEntity::class,
+        PaymentEntity::class,
+        DiscountEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @Suppress("TooManyFunctions") // one accessor per DAO — that is what a @Database class is
@@ -63,6 +78,11 @@ abstract class DapurJemberDatabase : RoomDatabase() {
     abstract fun staffDao(): StaffDao
     abstract fun shiftDao(): ShiftDao
     abstract fun cashMovementDao(): CashMovementDao
+    abstract fun orderDao(): OrderDao
+    abstract fun orderLineDao(): OrderLineDao
+    abstract fun orderLineModifierDao(): OrderLineModifierDao
+    abstract fun paymentDao(): PaymentDao
+    abstract fun discountDao(): DiscountDao
 
     companion object {
         const val NAME = "dapurjember.db"
