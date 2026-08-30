@@ -53,7 +53,16 @@ fun ModifierGroupsScreen(
                 PosButton(
                     text = stringResource(R.string.groups_action_add),
                     onClick = viewModel::startAdd,
+                    enabled = state.canManage,
                     modifier = Modifier.weight(1f),
+                )
+            }
+            if (!state.canManage && !state.loading) {
+                Text(
+                    stringResource(R.string.groups_no_permission),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 12.dp),
                 )
             }
             if (state.groups.isEmpty() && !state.loading) {
@@ -65,7 +74,13 @@ fun ModifierGroupsScreen(
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(state.groups, key = { it.id }) { group ->
-                    Card(Modifier.fillMaxWidth().clickable { viewModel.startEdit(group.id) }) {
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .let {
+                                if (state.canManage) it.clickable { viewModel.startEdit(group.id) } else it
+                            },
+                    ) {
                         Column(Modifier.padding(12.dp)) {
                             Text(group.name, style = MaterialTheme.typography.titleMedium)
                             Text(group.summaryText(), style = MaterialTheme.typography.bodySmall)

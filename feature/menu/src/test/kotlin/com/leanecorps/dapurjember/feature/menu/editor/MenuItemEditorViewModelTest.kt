@@ -3,6 +3,8 @@ package com.leanecorps.dapurjember.feature.menu.editor
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.leanecorps.dapurjember.core.common.money.Money
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.StaffRole
 import com.leanecorps.dapurjember.core.domain.config.StoreProfile
 import com.leanecorps.dapurjember.core.domain.inventory.BaseUnit
 import com.leanecorps.dapurjember.core.domain.inventory.Ingredient
@@ -11,12 +13,15 @@ import com.leanecorps.dapurjember.core.domain.menu.MenuItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuVariant
 import com.leanecorps.dapurjember.core.domain.pricing.RoundingRule
 import com.leanecorps.dapurjember.core.testing.coroutines.MainDispatcherExtension
+import com.leanecorps.dapurjember.core.testing.repository.FakeAuthRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeInventoryRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeMenuRepository
+import com.leanecorps.dapurjember.core.testing.repository.FakeSessionRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeStoreProfileRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
@@ -46,15 +51,27 @@ class MenuItemEditorViewModelTest {
 
     private val inventory = FakeInventoryRepository()
 
+    private val session = FakeSessionRepository()
+    private val auth = FakeAuthRepository(session)
+    private val authorise = AuthoriseUseCase(auth, session)
+
+    /** Signs someone in, so the MANAGE_MENU check has a role to look at. */
+    private suspend fun signInAs(role: StaffRole) {
+        auth.addStaff(id = "u1", name = "Staff", pin = "1111", role = role)
+        auth.signIn("u1", "1111")
+    }
+
     private fun viewModel(itemId: String? = null) = MenuItemEditorViewModel(
         savedStateHandle = SavedStateHandle(itemId?.let { mapOf(MENU_ITEM_ID_ARG to it) } ?: emptyMap()),
         menuRepository = menu,
         inventory = inventory,
+        authorise = authorise,
         storeProfiles = profiles,
     )
 
     @Test
     fun `a new item saves the item plus a variant priced in minor units`() = runTest {
+        signInAs(StaffRole.MANAGER)
         menu.upsertCategory(Category(id = "c1", name = "Rice"))
         val vm = viewModel()
 
@@ -79,6 +96,7 @@ class MenuItemEditorViewModelTest {
 
     @Test
     fun `the recipe sheet saves the variant's ingredient lines`() = runTest {
+        signInAs(StaffRole.MANAGER)
         menu.upsertCategory(Category(id = "c1", name = "Rice"))
         menu.saveItemWithVariants(
             MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"),
@@ -120,6 +138,7 @@ class MenuItemEditorViewModelTest {
 
     @Test
     fun `editing an existing item loads its variants formatted in major units`() = runTest {
+        signInAs(StaffRole.MANAGER)
         menu.upsertCategory(Category(id = "c1", name = "Rice"))
         menu.saveItemWithVariants(
             MenuItem(id = "i1", categoryId = "c1", name = "Indomie"),
@@ -133,6 +152,32 @@ class MenuItemEditorViewModelTest {
             assertEquals("Indomie", state.draft.name)
             assertEquals("12.5", state.draft.variants.single().priceText)
             assertTrue(state.canSave)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a waiter cannot save or delete an item`() = runTest {
+        signInAs(StaffRole.WAITER)
+        menu.upsertCategory(Category(id = "c1", name = "Rice"))
+        menu.upsertItem(MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"))
+        menu.upsertVariant(MenuVariant(id = "v1", menuItemId = "i1", name = "Regular", price = Money(2_500)))
+        val vm = viewModel("i1")
+
+        vm.uiState.test {
+            var state = expectMostRecentItem()
+            while (state.loading) state = awaitItem()
+
+            assertFalse(state.canManage)
+            // canSave folds the permission in, so the Save button is disabled too.
+            assertFalse(state.canSave)
+
+            vm.edit { it.copy(name = "Renamed") }
+            vm.save()
+            assertEquals("Nasi Goreng", menu.observeItemWithVariants("i1").first()?.item?.name)
+
+            vm.delete()
+            assertTrue(menu.observeItemWithVariants("i1").first() != null)
             cancelAndIgnoreRemainingEvents()
         }
     }

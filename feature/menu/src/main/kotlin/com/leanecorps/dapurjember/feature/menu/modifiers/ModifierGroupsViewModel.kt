@@ -3,6 +3,8 @@ package com.leanecorps.dapurjember.feature.menu.modifiers
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leanecorps.dapurjember.core.common.id.UuidV7
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.Permission
 import com.leanecorps.dapurjember.core.domain.config.StoreProfileRepository
 import com.leanecorps.dapurjember.core.domain.menu.MenuRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,11 +24,13 @@ import javax.inject.Inject
 @HiltViewModel
 class ModifierGroupsViewModel @Inject constructor(
     private val menuRepository: MenuRepository,
+    private val authorise: AuthoriseUseCase,
     storeProfiles: StoreProfileRepository,
 ) : ViewModel() {
 
     private val minorUnits = MutableStateFlow(0)
     private val editor = MutableStateFlow<ModifierGroupDraft?>(null)
+    private val canManage = MutableStateFlow(false)
 
     private val groupsWithModifiers = menuRepository.observeModifierGroups().flatMapLatest { groups ->
         if (groups.isEmpty()) {
@@ -42,17 +46,22 @@ class ModifierGroupsViewModel @Inject constructor(
         groupsWithModifiers,
         editor,
         minorUnits,
-    ) { groups, editorState, scale ->
+        canManage,
+    ) { groups, editorState, scale, allowed ->
         ModifierGroupsUiState(
             loading = false,
             currencyMinorUnits = scale,
             groups = groups.map { it.toRowUi() },
             editor = editorState,
+            canManage = allowed,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ModifierGroupsUiState())
 
     init {
-        viewModelScope.launch { minorUnits.value = storeProfiles.getProfile()?.currencyMinorUnits ?: 0 }
+        viewModelScope.launch {
+            minorUnits.value = storeProfiles.getProfile()?.currencyMinorUnits ?: 0
+            canManage.value = authorise.currentUserCan(Permission.MANAGE_MENU)
+        }
     }
 
     /** The in-progress draft, exposed for tests; the screen reads it from [uiState]. */
@@ -92,7 +101,7 @@ class ModifierGroupsViewModel @Inject constructor(
 
     fun save() {
         val draft = editor.value ?: return
-        if (!draft.canSave) return
+        if (!draft.canSave || !canManage.value) return
         viewModelScope.launch {
             val id = draft.id ?: UuidV7.generate()
             menuRepository.saveModifierGroup(draft.toGroup(id), draft.toModifiers(id, minorUnits.value))
@@ -101,6 +110,7 @@ class ModifierGroupsViewModel @Inject constructor(
     }
 
     fun delete(groupId: String) {
+        if (!canManage.value) return
         viewModelScope.launch { menuRepository.softDeleteModifierGroup(groupId) }
     }
 

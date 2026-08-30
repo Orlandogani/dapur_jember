@@ -1,10 +1,9 @@
-package com.leanecorps.dapurjember.feature.menu.modifiers
+package com.leanecorps.dapurjember.feature.menu.csv
 
 import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
 import com.leanecorps.dapurjember.core.domain.auth.StaffRole
 import com.leanecorps.dapurjember.core.domain.config.StoreProfile
-import com.leanecorps.dapurjember.core.domain.menu.Modifier
-import com.leanecorps.dapurjember.core.domain.menu.ModifierGroup
+import com.leanecorps.dapurjember.core.domain.menu.ImportMenuCsvUseCase
 import com.leanecorps.dapurjember.core.domain.pricing.RoundingRule
 import com.leanecorps.dapurjember.core.testing.coroutines.MainDispatcherExtension
 import com.leanecorps.dapurjember.core.testing.repository.FakeAuthRepository
@@ -15,14 +14,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ModifierGroupsViewModelTest {
+class ImportMenuViewModelTest {
 
     @JvmField
     @RegisterExtension
@@ -44,7 +43,6 @@ class ModifierGroupsViewModelTest {
             timezoneId = "UTC",
         ),
     )
-
     private val session = FakeSessionRepository()
     private val auth = FakeAuthRepository(session)
     private val authorise = AuthoriseUseCase(auth, session)
@@ -55,59 +53,34 @@ class ModifierGroupsViewModelTest {
         auth.signIn("u1", "1111")
     }
 
-    private val viewModel by lazy { ModifierGroupsViewModel(menu, authorise, profiles) }
+    private fun viewModel() = ImportMenuViewModel(ImportMenuCsvUseCase(menu, profiles), authorise)
 
     @Test
-    fun `adding a group with options persists it`() = runTest {
+    fun `a manager can import a menu`() = runTest {
         signInAs(StaffRole.MANAGER)
-        viewModel.startAdd()
-        viewModel.edit { it.copy(name = "Spice level", required = true, minSelectText = "1", maxSelectText = "1") }
-        val firstRowId = viewModel.currentEditor!!.modifiers.single().id
-        viewModel.editModifier(firstRowId) { it.copy(name = "Mild") }
-        viewModel.addModifier()
-        val secondRowId = viewModel.currentEditor!!.modifiers.last().id
-        viewModel.editModifier(secondRowId) { it.copy(name = "Hot", priceDeltaText = "2000") }
-        viewModel.save()
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.canManage)
+
+        vm.setText("category,item,variant,price\nRice,Nasi Goreng,Regular,25000")
+        vm.import()
         advanceUntilIdle()
 
-        val group = menu.observeModifierGroups().first().single()
-        assertEquals("Spice level", group.name)
-        assertTrue(group.required)
-        val detail = menu.observeModifierGroup(group.id).first()!!
-        assertEquals(listOf("Mild" to 0L, "Hot" to 2_000L), detail.modifiers.map { it.name to it.priceDelta.minor })
+        assertTrue(menu.observeCategories().first().any { it.name == "Rice" })
     }
 
     @Test
-    fun `save is a no-op without a name`() = runTest {
-        signInAs(StaffRole.MANAGER)
-        viewModel.startAdd()
-        viewModel.editModifier(viewModel.currentEditor!!.modifiers.single().id) { it.copy(name = "X") }
-        viewModel.save()
-        advanceUntilIdle()
-
-        assertTrue(menu.observeModifierGroups().first().isEmpty())
-    }
-
-    @Test
-    fun `a waiter cannot save or delete a modifier group`() = runTest {
+    fun `a waiter cannot import a menu`() = runTest {
         signInAs(StaffRole.WAITER)
-        menu.saveModifierGroup(
-            ModifierGroup(id = "g1", name = "Spice level", minSelect = 1, maxSelect = 1, required = true),
-            listOf(Modifier(id = "m1", modifierGroupId = "g1", name = "Mild")),
-        )
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.canManage)
 
+        vm.setText("category,item,variant,price\nRice,Nasi Goreng,Regular,25000")
+        vm.import()
         advanceUntilIdle()
-        assertFalse(viewModel.uiState.value.canManage)
 
-        viewModel.startEdit("g1")
-        advanceUntilIdle()
-        viewModel.edit { it.copy(name = "Renamed") }
-        viewModel.save()
-        advanceUntilIdle()
-        assertEquals("Spice level", menu.observeModifierGroups().first().single().name)
-
-        viewModel.delete("g1")
-        advanceUntilIdle()
-        assertEquals(1, menu.observeModifierGroups().first().size)
+        assertNull(vm.uiState.value.summary)
+        assertTrue(menu.observeCategories().first().isEmpty())
     }
 }

@@ -71,12 +71,20 @@ internal fun MenuScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.menu_title)) },
                 actions = {
-                    TextButton(onClick = onModifierGroups) { Text(stringResource(R.string.menu_action_modifiers)) }
-                    TextButton(onClick = onImportCsv) { Text(stringResource(R.string.menu_action_import_csv)) }
-                    TextButton(onClick = { showCategoryDialog = true }) {
-                        Text(stringResource(R.string.menu_action_add_category))
+                    // Every editing entry point is hidden outright rather than disabled: a
+                    // waiter has no use for a row of greyed-out buttons mid-service.
+                    if (state.canManage) {
+                        TextButton(onClick = onModifierGroups) {
+                            Text(stringResource(R.string.menu_action_modifiers))
+                        }
+                        TextButton(onClick = onImportCsv) { Text(stringResource(R.string.menu_action_import_csv)) }
+                        TextButton(onClick = { showCategoryDialog = true }) {
+                            Text(stringResource(R.string.menu_action_add_category))
+                        }
+                        TextButton(onClick = { onEditItem(null) }) {
+                            Text(stringResource(R.string.menu_action_add_item))
+                        }
                     }
-                    TextButton(onClick = { onEditItem(null) }) { Text(stringResource(R.string.menu_action_add_item)) }
                 },
             )
         },
@@ -90,6 +98,15 @@ internal fun MenuScreen(
                 }
 
                 else -> LazyColumn(Modifier.fillMaxSize()) {
+                    if (!state.canManage) {
+                        item(key = "no_permission") {
+                            Text(
+                                text = stringResource(R.string.menu_no_permission),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            )
+                        }
+                    }
                     state.sections.forEach { section ->
                         item(key = "h_${section.id}") {
                             Text(
@@ -102,7 +119,13 @@ internal fun MenuScreen(
                             MenuItemRow(
                                 item = item,
                                 onToggle = { onToggleAvailability(item.id, it) },
-                                onClick = { onEditItem(item.id) },
+                                // The sold-out switch stays live for everyone (FR-M2); only
+                                // opening the editor needs MANAGE_MENU.
+                                onClick = if (state.canManage) {
+                                    { onEditItem(item.id) }
+                                } else {
+                                    null
+                                },
                             )
                             HorizontalDivider()
                         }
@@ -124,11 +147,11 @@ internal fun MenuScreen(
 }
 
 @Composable
-private fun MenuItemRow(item: MenuItemUi, onToggle: (Boolean) -> Unit, onClick: () -> Unit) {
+private fun MenuItemRow(item: MenuItemUi, onToggle: (Boolean) -> Unit, onClick: (() -> Unit)?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .let { if (onClick == null) it else it.clickable(onClick = onClick) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,

@@ -20,12 +20,15 @@ data class MenuItemEditorState(
     /** Recipe cost per variant id, loaded for a saved item (FR-I4). */
     val variantCosts: Map<String, Long> = emptyMap(),
     val done: Boolean = false,
+    /** False when the signed-in staff lacks MANAGE_MENU; the editor renders read-only. */
+    val canManage: Boolean = false,
 ) {
     fun marginFor(variant: VariantDraft): VariantMarginUi =
         variantMargin(variant.id, variantCosts[variant.id] ?: 0L, variant.priceMinor(currencyMinorUnits))
 
     val canSave: Boolean
-        get() = draft.name.isNotBlank() &&
+        get() = canManage &&
+            draft.name.isNotBlank() &&
             draft.categoryId.isNotBlank() &&
             draft.variants.isNotEmpty() &&
             draft.variants.all { it.name.isNotBlank() && it.priceMinor(currencyMinorUnits) != null }

@@ -46,6 +46,13 @@ fun ImportMenuScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (!state.canManage) {
+                Text(
+                    stringResource(R.string.import_no_permission),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             Text(
                 stringResource(R.string.import_help),
                 style = MaterialTheme.typography.bodySmall,
@@ -68,7 +75,7 @@ fun ImportMenuScreen(
                         if (state.running) R.string.import_action_importing else R.string.import_action_import,
                     ),
                     onClick = viewModel::import,
-                    enabled = !state.running && state.text.isNotBlank(),
+                    enabled = state.canManage && !state.running && state.text.isNotBlank(),
                     modifier = Modifier.weight(1f),
                 )
             }

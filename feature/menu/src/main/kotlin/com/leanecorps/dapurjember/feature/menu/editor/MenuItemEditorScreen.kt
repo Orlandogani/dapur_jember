@@ -251,7 +251,7 @@ private fun EditorBody(
         }
 
         Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (!state.isNew) {
+            if (!state.isNew && state.canManage) {
                 PosOutlinedButton(
                     text = stringResource(R.string.editor_action_delete),
                     onClick = onDelete,

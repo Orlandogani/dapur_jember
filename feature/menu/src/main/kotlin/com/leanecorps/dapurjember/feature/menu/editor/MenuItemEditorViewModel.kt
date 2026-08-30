@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leanecorps.dapurjember.core.common.id.UuidV7
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.Permission
 import com.leanecorps.dapurjember.core.domain.config.StoreProfileRepository
 import com.leanecorps.dapurjember.core.domain.inventory.InventoryRepository
 import com.leanecorps.dapurjember.core.domain.inventory.RecipeLine
@@ -25,6 +27,7 @@ class MenuItemEditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val menuRepository: MenuRepository,
     private val inventory: InventoryRepository,
+    private val authorise: AuthoriseUseCase,
     storeProfiles: StoreProfileRepository,
 ) : ViewModel() {
 
@@ -35,11 +38,12 @@ class MenuItemEditorViewModel @Inject constructor(
     private val variantCosts = MutableStateFlow<Map<String, Long>>(emptyMap())
     private val done = MutableStateFlow(false)
     private val minorUnits = MutableStateFlow(0)
+    private val canManage = MutableStateFlow(false)
 
     private val editorInputs =
         combine(draft, recipe, variantCosts, done, minorUnits) { d, r, costs, isDone, scale ->
             EditorInputs(d, r, costs, isDone, scale)
-        }
+        }.combine(canManage) { inputs, allowed -> inputs.copy(canManage = allowed) }
 
     val uiState: StateFlow<MenuItemEditorState> = combine(
         menuRepository.observeCategories(),
@@ -58,6 +62,7 @@ class MenuItemEditorViewModel @Inject constructor(
             recipe = inputs.recipe,
             variantCosts = inputs.variantCosts,
             done = inputs.done,
+            canManage = inputs.canManage,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), MenuItemEditorState())
 
@@ -65,6 +70,7 @@ class MenuItemEditorViewModel @Inject constructor(
         viewModelScope.launch {
             val scale = storeProfiles.getProfile()?.currencyMinorUnits ?: 0
             minorUnits.value = scale
+            canManage.value = authorise.currentUserCan(Permission.MANAGE_MENU)
             val firstCategory = menuRepository.observeCategories().first().firstOrNull()?.id.orEmpty()
             draft.value = if (itemId == null) {
                 MenuItemDraft(categoryId = firstCategory)
@@ -141,7 +147,7 @@ class MenuItemEditorViewModel @Inject constructor(
 
     fun saveRecipe() {
         val current = recipe.value ?: return
-        if (!current.canSave) return
+        if (!current.canSave || !canManage.value) return
         viewModelScope.launch {
             inventory.saveRecipe(
                 menuVariantId = current.variantId,
@@ -177,7 +183,7 @@ class MenuItemEditorViewModel @Inject constructor(
     }
 
     fun delete() {
-        val existingId = itemId ?: return
+        val existingId = itemId?.takeIf { canManage.value } ?: return
         viewModelScope.launch {
             menuRepository.softDeleteItem(existingId)
             done.value = true
@@ -194,6 +200,7 @@ class MenuItemEditorViewModel @Inject constructor(
         val variantCosts: Map<String, Long>,
         val done: Boolean,
         val minorUnits: Int,
+        val canManage: Boolean = false,
     )
 
     private companion object {

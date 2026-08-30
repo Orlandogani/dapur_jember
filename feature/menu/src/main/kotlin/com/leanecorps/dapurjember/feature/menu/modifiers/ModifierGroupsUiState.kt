@@ -13,6 +13,8 @@ data class ModifierGroupsUiState(
     val currencyMinorUnits: Int = 0,
     val groups: List<ModifierGroupRowUi> = emptyList(),
     val editor: ModifierGroupDraft? = null,
+    /** False when the signed-in staff lacks MANAGE_MENU; the list renders read-only. */
+    val canManage: Boolean = false,
 )
 
 /** A row on the groups list. Holds numbers, not a rendered sentence — see `summaryText`. */
