@@ -25,8 +25,18 @@ interface BackupRepository {
      */
     suspend fun restore(file: BackupFile, passphrase: CharArray): RestoreResult
 
+    /**
+     * The unattended nightly backup (FR-D3). Encrypted with a device-held key because a
+     * scheduled job cannot prompt for a passphrase — a local safety net, *not* a replacement
+     * for a manual backup taken off the tablet.
+     */
+    suspend fun createAutomaticBackup(): BackupFile
+
     /** Keeps the newest [keep] backups and deletes the rest (FR-D3, rolling window). */
     suspend fun pruneOldBackups(keep: Int = DEFAULT_BACKUPS_KEPT)
+
+    /** True when the last backup is older than [BACKUP_NAG_DAYS], or there has never been one (FR-D4). */
+    suspend fun backupOverdue(nowMillis: Long): Boolean
 
     companion object {
         /** FR-D3: "retaining the last 7 copies, on a rolling basis". */
@@ -37,7 +47,17 @@ interface BackupRepository {
     }
 }
 
-data class BackupFile(val name: String, val path: String, val sizeBytes: Long, val createdAt: Long)
+data class BackupFile(
+    val name: String,
+    val path: String,
+    val sizeBytes: Long,
+    val createdAt: Long,
+    /**
+     * An automatic (FR-D3) backup is encrypted with a device-held key, so it can only be
+     * restored on this tablet — it must never be offered as a share-off-device option.
+     */
+    val isAutomatic: Boolean = false,
+)
 
 sealed interface RestoreResult {
     /** The database was replaced; the process must restart to reopen it cleanly. */

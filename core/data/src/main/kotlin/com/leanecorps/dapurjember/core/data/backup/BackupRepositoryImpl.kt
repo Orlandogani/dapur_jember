@@ -23,6 +23,12 @@ import javax.inject.Singleton
 
 private const val BACKUP_DIR = "backups"
 private const val BACKUP_EXTENSION = ".djbk"
+
+/** Manual backups carry the owner's passphrase; automatic ones a device key — see [DeviceBackupKey]. */
+private const val AUTO_PREFIX_MANUAL = "dapurjember"
+private const val AUTO_PREFIX_AUTO = "dapurjember-auto"
+
+private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1_000
 private val STAMP: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC)
 
 /**
@@ -40,6 +46,7 @@ private val STAMP: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHm
 class BackupRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: DapurJemberDatabase,
+    private val deviceBackupKey: DeviceBackupKey,
     private val time: TimeProvider,
 ) : BackupRepository {
 
@@ -56,16 +63,26 @@ class BackupRepositoryImpl @Inject constructor(
 
     override suspend fun lastBackupAt(): Long? = listBackups().maxOfOrNull { it.createdAt }
 
-    override suspend fun createBackup(passphrase: CharArray): BackupFile {
+    override suspend fun createBackup(passphrase: CharArray): BackupFile = write(passphrase, AUTO_PREFIX_MANUAL)
+
+    override suspend fun createAutomaticBackup(): BackupFile =
+        write(deviceBackupKey.passphrase(), AUTO_PREFIX_AUTO)
+
+    private fun write(passphrase: CharArray, prefix: String): BackupFile {
         checkpointWal()
         val dbFile = context.getDatabasePath(DapurJemberDatabase.NAME)
         val encrypted = BackupCrypto.encrypt(dbFile.readBytes(), passphrase)
 
         val now = time.nowMillis()
-        val target = File(directory, "dapurjember-${STAMP.format(Instant.ofEpochMilli(now))}$BACKUP_EXTENSION")
+        val target = File(directory, "$prefix-${STAMP.format(Instant.ofEpochMilli(now))}$BACKUP_EXTENSION")
         target.writeBytes(encrypted)
         refresh()
         return target.toBackupFile()
+    }
+
+    override suspend fun backupOverdue(nowMillis: Long): Boolean {
+        val last = lastBackupAt() ?: return true
+        return nowMillis - last > BackupRepository.BACKUP_NAG_DAYS * MILLIS_PER_DAY
     }
 
     override suspend fun restore(file: BackupFile, passphrase: CharArray): RestoreResult {
@@ -142,10 +159,14 @@ class BackupRepositoryImpl @Inject constructor(
         path = path,
         sizeBytes = length(),
         createdAt = createdAtFromName(name) ?: lastModified(),
+        isAutomatic = name.startsWith("$AUTO_PREFIX_AUTO-"),
     )
 
     private fun createdAtFromName(name: String): Long? {
-        val stamp = name.removePrefix("dapurjember-").removeSuffix(BACKUP_EXTENSION)
+        val stamp = name
+            .removePrefix("$AUTO_PREFIX_AUTO-")
+            .removePrefix("$AUTO_PREFIX_MANUAL-")
+            .removeSuffix(BACKUP_EXTENSION)
         return runCatching {
             LocalDateTime.parse(stamp, STAMP).toInstant(ZoneOffset.UTC).toEpochMilli()
         }.getOrNull()

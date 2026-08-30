@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,6 +50,7 @@ fun BackupScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(state.message) {
         state.message?.let {
@@ -86,7 +88,12 @@ fun BackupScreen(
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(state.backups, key = { it.path }) { file ->
-                    BackupRow(file = file, onRestore = { viewModel.startRestore(file) }, enabled = !state.busy)
+                    BackupRow(
+                        file = file,
+                        onRestore = { viewModel.startRestore(file) },
+                        onShare = { shareBackup(context, file) },
+                        enabled = !state.busy,
+                    )
                 }
             }
         }
@@ -112,17 +119,22 @@ fun BackupScreen(
 }
 
 @Composable
-private fun BackupRow(file: BackupFile, onRestore: () -> Unit, enabled: Boolean) {
+private fun BackupRow(file: BackupFile, onRestore: () -> Unit, onShare: () -> Unit, enabled: Boolean) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Text(STAMP.format(Instant.ofEpochMilli(file.createdAt)), style = MaterialTheme.typography.titleMedium)
-            Text("${file.sizeBytes / 1024} KB", style = MaterialTheme.typography.bodySmall)
-            PosOutlinedButton(
-                text = "Restore…",
-                onClick = onRestore,
-                enabled = enabled,
-                modifier = Modifier.padding(top = 8.dp),
+            Text(
+                "${file.sizeBytes / 1024} KB" + if (file.isAutomatic) " · automatic" else "",
+                style = MaterialTheme.typography.bodySmall,
             )
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PosOutlinedButton(text = "Restore…", onClick = onRestore, enabled = enabled)
+                // An automatic backup is encrypted with a device key, so it is useless
+                // elsewhere — only a passphrase-protected manual backup is worth sharing.
+                if (!file.isAutomatic) {
+                    PosOutlinedButton(text = "Share", onClick = onShare, enabled = enabled)
+                }
+            }
         }
     }
 }

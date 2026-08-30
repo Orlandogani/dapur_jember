@@ -3,6 +3,7 @@ package com.leanecorps.dapurjember.core.data.backup
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.leanecorps.dapurjember.core.data.crypto.DatabasePassphrase
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.domain.backup.RestoreResult
 import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
@@ -39,7 +40,11 @@ class BackupRepositoryImplTest {
         db = Room.databaseBuilder(context, DapurJemberDatabase::class.java, DapurJemberDatabase.NAME)
             .allowMainThreadQueries()
             .build()
-        repo = BackupRepositoryImpl(context, db, time)
+        // A fixed device key stands in for the Keystore-wrapped one, which needs a real device.
+        val deviceKey = DeviceBackupKey(object : DatabasePassphrase {
+            override fun getOrCreate() = "device-key-bytes".toByteArray()
+        })
+        repo = BackupRepositoryImpl(context, db, deviceKey, time)
     }
 
     @After
@@ -104,6 +109,28 @@ class BackupRepositoryImplTest {
         assertTrue(result is RestoreResult.Failed)
         assertEquals("Wrong passphrase, or the backup file is damaged.", (result as RestoreResult.Failed).message)
         assertEquals(2, db.categoryDao().observeAll().first().size) // still both categories
+    }
+
+    @Test
+    fun `an automatic backup restores on this device without the owner's passphrase (FR-D3)`() = runTest {
+        db.categoryDao().upsert(MenuEntityFixtures.category(id = "c1", name = "Rice"))
+
+        val auto = repo.createAutomaticBackup()
+
+        assertTrue("automatic backups must be flagged so they are never offered for sharing", auto.isAutomatic)
+        // It is restorable here because the device key is available — a manual passphrase is not.
+        assertTrue(repo.restore(auto, "the owner's passphrase".toCharArray()) is RestoreResult.Failed)
+    }
+
+    @Test
+    fun `backupOverdue is true with no backups and false right after one (FR-D4)`() = runTest {
+        assertTrue(repo.backupOverdue(time.now))
+
+        repo.createBackup(passphrase)
+
+        assertTrue(!repo.backupOverdue(time.now))
+        // Eight days later the reminder returns.
+        assertTrue(repo.backupOverdue(time.now + 8L * 24 * 60 * 60 * 1_000))
     }
 
     @Test

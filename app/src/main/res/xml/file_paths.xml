@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only the export scratch directory is shareable; the database and backups are not. -->
+<!--
+  Only these two directories are shareable. The database itself is never exposed — a backup
+  is shared instead, and it is encrypted under the owner's passphrase (FR-D1).
+-->
 <paths>
     <cache-path name="exports" path="exports/" />
+    <files-path name="backups" path="backups/" />
 </paths>

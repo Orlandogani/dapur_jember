@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -34,6 +36,8 @@ import com.leanecorps.dapurjember.core.domain.floor.TableState
 @Composable
 @Suppress("LongParameterList")
 fun FloorScreen(
+    backupOverdue: Boolean,
+    onDismissBackupReminder: () -> Unit,
     onOpenTable: (tableId: String) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenReports: () -> Unit,
@@ -44,6 +48,8 @@ fun FloorScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     FloorScreen(
         state = state,
+        backupOverdue = backupOverdue,
+        onDismissBackupReminder = onDismissBackupReminder,
         onOpenTable = onOpenTable,
         onOpenMenu = onOpenMenu,
         onOpenReports = onOpenReports,
@@ -57,6 +63,8 @@ fun FloorScreen(
 @Suppress("LongParameterList")
 internal fun FloorScreen(
     state: FloorUiState,
+    backupOverdue: Boolean,
+    onDismissBackupReminder: () -> Unit,
     onOpenTable: (tableId: String) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenReports: () -> Unit,
@@ -76,35 +84,64 @@ internal fun FloorScreen(
             )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // FR-D4: nag after a week without a backup. Non-blocking — never trap a busy floor.
+            if (backupOverdue) {
+                BackupReminderBanner(onOpenSettings = onOpenSettings, onDismiss = onDismissBackupReminder)
+            }
+            Box(Modifier.fillMaxSize()) {
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
 
-                state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("No tables configured yet", style = MaterialTheme.typography.bodyLarge)
-                }
+                    state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        Text("No tables configured yet", style = MaterialTheme.typography.bodyLarge)
+                    }
 
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 132.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    state.areas.forEach { area ->
-                        item(span = { GridItemSpan(maxLineSpan) }, key = "header_${area.id}") {
-                            Text(
-                                text = area.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
-                        }
-                        items(area.tables, key = { it.id }) { table ->
-                            TableCard(table = table, onClick = { onOpenTable(table.id) })
+                    else -> LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 132.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        state.areas.forEach { area ->
+                            item(span = { GridItemSpan(maxLineSpan) }, key = "header_${area.id}") {
+                                Text(
+                                    text = area.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                )
+                            }
+                            items(area.tables, key = { it.id }) { table ->
+                                TableCard(table = table, onClick = { onOpenTable(table.id) })
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BackupReminderBanner(onOpenSettings: () -> Unit, onDismiss: () -> Unit) {
+    Card(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Row(
+            Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "It has been a while since your last backup.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onOpenSettings) { Text("Back up") }
+            TextButton(onClick = onDismiss) { Text("Later") }
         }
     }
 }

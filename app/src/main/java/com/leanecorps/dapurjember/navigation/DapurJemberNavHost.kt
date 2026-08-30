@@ -57,6 +57,7 @@ fun DapurJemberNavHost(
 ) {
     val scope = rememberCoroutineScope()
     val hasOpenShift by viewModel.hasOpenShift.collectAsStateWithLifecycle()
+    val backupOverdue by viewModel.backupOverdue.collectAsStateWithLifecycle()
 
     val start = lockedStartRoute(viewModel)
     if (start == null) {
@@ -88,6 +89,8 @@ fun DapurJemberNavHost(
             },
         )
         floorScreen(
+            backupOverdue = backupOverdue,
+            onDismissBackupReminder = viewModel::dismissBackupReminder,
             onOpenTable = { tableId ->
                 scope.launch {
                     runCatching { viewModel.orderIdForTable(tableId, DEFAULT_GUESTS) }

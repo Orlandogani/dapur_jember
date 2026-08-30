@@ -22,5 +22,10 @@ dependencies {
     implementation(libs.androidx.sqlite)
     implementation(libs.bcrypt)
 
+    // Nightly backup worker (FR-D3).
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     testImplementation(project(":core:testing"))
 }

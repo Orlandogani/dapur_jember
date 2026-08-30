@@ -23,15 +23,24 @@ class FakeBackupRepository(
 
     override suspend fun createBackup(passphrase: CharArray): BackupFile {
         lastCreatedWith = String(passphrase)
+        return add(automatic = false)
+    }
+
+    override suspend fun createAutomaticBackup(): BackupFile = add(automatic = true)
+
+    private fun add(automatic: Boolean): BackupFile {
         val file = BackupFile(
             name = "backup-${++nextId}.djbk",
             path = "/tmp/backup-$nextId.djbk",
             sizeBytes = 1_024,
             createdAt = nextId.toLong(),
+            isAutomatic = automatic,
         )
         files.update { it + file }
         return file
     }
+
+    override suspend fun backupOverdue(nowMillis: Long): Boolean = files.value.isEmpty()
 
     override suspend fun restore(file: BackupFile, passphrase: CharArray): RestoreResult =
         if (String(passphrase) == restorePassphrase) {
