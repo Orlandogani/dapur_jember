@@ -58,6 +58,8 @@ internal class AuthRepositoryImpl @Inject constructor(
         return pinHasher.verify(pin, staff.pinHash)
     }
 
+    override suspend fun staffById(staffId: String): Staff? = staffDao.getById(staffId)?.toDomain()
+
     override suspend fun signIn(staffId: String, pin: String): Boolean {
         if (!verifyPin(staffId, pin)) return false
         sessionRepository.setCurrentStaff(staffId)

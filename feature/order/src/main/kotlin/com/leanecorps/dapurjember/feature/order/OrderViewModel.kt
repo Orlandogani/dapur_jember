@@ -3,12 +3,15 @@ package com.leanecorps.dapurjember.feature.order
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.Permission
 import com.leanecorps.dapurjember.core.domain.menu.MenuBoardItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuItemWithVariants
 import com.leanecorps.dapurjember.core.domain.menu.MenuRepository
 import com.leanecorps.dapurjember.core.domain.menu.ModifierGroupWithModifiers
 import com.leanecorps.dapurjember.core.domain.menu.ObserveMenuUseCase
 import com.leanecorps.dapurjember.core.domain.order.AddLineParams
+import com.leanecorps.dapurjember.core.domain.order.ApplyDiscountParams
 import com.leanecorps.dapurjember.core.domain.order.Order
 import com.leanecorps.dapurjember.core.domain.order.OrderLine
 import com.leanecorps.dapurjember.core.domain.order.OrderRepository
@@ -36,11 +39,14 @@ class OrderViewModel @Inject constructor(
     private val menuRepository: MenuRepository,
     private val orderRepository: OrderRepository,
     private val sessionRepository: SessionRepository,
+    private val authorise: AuthoriseUseCase,
 ) : ViewModel() {
 
     private val orderId: String = requireNotNull(savedStateHandle[ORDER_ID_ARG])
     private val selectedCategoryId = MutableStateFlow<String?>(null)
     private val picker = MutableStateFlow<ModifierPickerUiState?>(null)
+    private val lineAction = MutableStateFlow<LineActionUiState?>(null)
+    private val discount = MutableStateFlow<DiscountUiState?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val board = selectedCategoryId.flatMapLatest { categoryId ->
@@ -74,9 +80,10 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<OrderUiState> = combine(core, picker) { base, pickerState ->
-        base.copy(picker = pickerState)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), OrderUiState())
+    val uiState: StateFlow<OrderUiState> =
+        combine(core, picker, lineAction, discount) { base, pickerState, action, discountState ->
+            base.copy(picker = pickerState, lineAction = action, discount = discountState)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), OrderUiState())
 
     fun selectCategory(categoryId: String) {
         selectedCategoryId.value = categoryId
@@ -174,6 +181,83 @@ class OrderViewModel @Inject constructor(
 
     fun send() {
         viewModelScope.launch { orderRepository.sendToKitchen(orderId) }
+    }
+
+    // --- Void a line (S07 / FR-O4), with step-up authorisation (FR-A3) ---
+
+    fun openLineAction(line: OrderLineUi) {
+        viewModelScope.launch {
+            lineAction.value = LineActionUiState(
+                lineId = line.id,
+                lineName = line.name,
+                sent = line.sent,
+                // Only a *sent* line is privileged; an unsent line is still a draft (FR-A3).
+                needsStepUp = line.sent && !authorise.currentUserCan(Permission.VOID_SENT_LINE),
+            )
+        }
+    }
+
+    fun editLineAction(transform: (LineActionUiState) -> LineActionUiState) {
+        lineAction.value = lineAction.value?.let(transform)
+    }
+
+    fun dismissLineAction() {
+        lineAction.value = null
+    }
+
+    fun confirmVoid() {
+        val action = lineAction.value ?: return
+        if (!action.canVoid) return
+        viewModelScope.launch {
+            val actorId = authorise.actorFor(Permission.VOID_SENT_LINE, action.pin.takeIf { it.isNotBlank() })
+            if (actorId == null) {
+                lineAction.value = action.copy(pin = "", error = "That PIN cannot authorise a void.")
+                return@launch
+            }
+            orderRepository.voidLine(action.lineId, action.storedReason, actorId)
+            lineAction.value = null
+        }
+    }
+
+    // --- Discount (S11 / FR-P4) ---
+
+    fun openDiscount() {
+        viewModelScope.launch {
+            discount.value = DiscountUiState(
+                needsStepUp = !authorise.currentUserCan(Permission.APPLY_DISCOUNT),
+            )
+        }
+    }
+
+    fun editDiscount(transform: (DiscountUiState) -> DiscountUiState) {
+        discount.value = discount.value?.let(transform)
+    }
+
+    fun dismissDiscount() {
+        discount.value = null
+    }
+
+    fun confirmDiscount() {
+        val draft = discount.value ?: return
+        val value = draft.value
+        if (!draft.canApply || value == null) return
+        viewModelScope.launch {
+            val actorId = authorise.actorFor(Permission.APPLY_DISCOUNT, draft.pin.takeIf { it.isNotBlank() })
+            if (actorId == null) {
+                discount.value = draft.copy(pin = "", error = "That PIN cannot authorise a discount.")
+                return@launch
+            }
+            orderRepository.applyDiscount(
+                ApplyDiscountParams(
+                    orderId = orderId,
+                    kind = draft.kind,
+                    value = value,
+                    reason = draft.reason.trim(),
+                    authorisedByStaffId = actorId,
+                ),
+            )
+            discount.value = null
+        }
     }
 
     private companion object {

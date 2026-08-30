@@ -29,6 +29,8 @@ interface AuthRepository {
     /** Verifies a PIN without changing who is signed in — for step-up authorisation (FR-A3). */
     suspend fun verifyPin(staffId: String, pin: String): Boolean
 
+    suspend fun staffById(staffId: String): Staff?
+
     /** Creates a staff member (setup wizard / staff management). Returns the new id. */
     suspend fun createStaff(name: String, role: StaffRole, pin: String): String
 }

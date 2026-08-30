@@ -30,6 +30,9 @@ class FakeAuthRepository(
     override suspend fun verifyPin(staffId: String, pin: String): Boolean =
         records.value.any { it.staff.id == staffId && it.pin == pin }
 
+    override suspend fun staffById(staffId: String): Staff? =
+        records.value.firstOrNull { it.staff.id == staffId }?.staff
+
     override suspend fun signIn(staffId: String, pin: String): Boolean {
         if (!verifyPin(staffId, pin)) return false
         session.setCurrentStaff(staffId)

@@ -47,6 +47,8 @@ fun OrderScreen(
         onAddTile = viewModel::addTile,
         onIncrement = viewModel::increment,
         onDecrement = viewModel::decrement,
+        onLineClick = viewModel::openLineAction,
+        onDiscount = viewModel::openDiscount,
         onSend = viewModel::send,
         onCheckout = onCheckout,
     )
@@ -57,6 +59,22 @@ fun OrderScreen(
             onToggleModifier = viewModel::toggleModifier,
             onConfirm = viewModel::confirmPicker,
             onDismiss = viewModel::dismissPicker,
+        )
+    }
+    state.lineAction?.let { action ->
+        LineActionDialog(
+            action = action,
+            onChange = viewModel::editLineAction,
+            onConfirm = viewModel::confirmVoid,
+            onDismiss = viewModel::dismissLineAction,
+        )
+    }
+    state.discount?.let { draft ->
+        DiscountDialog(
+            draft = draft,
+            onChange = viewModel::editDiscount,
+            onConfirm = viewModel::confirmDiscount,
+            onDismiss = viewModel::dismissDiscount,
         )
     }
 }
@@ -134,6 +152,8 @@ internal fun OrderScreen(
     onAddTile: (BoardTileUi) -> Unit,
     onIncrement: (OrderLineUi) -> Unit,
     onDecrement: (OrderLineUi) -> Unit,
+    onLineClick: (OrderLineUi) -> Unit,
+    onDiscount: () -> Unit,
     onSend: () -> Unit,
     onCheckout: (String) -> Unit,
 ) {
@@ -155,6 +175,8 @@ internal fun OrderScreen(
             state = state,
             onIncrement = onIncrement,
             onDecrement = onDecrement,
+            onLineClick = onLineClick,
+            onDiscount = onDiscount,
             onSend = onSend,
             onCheckout = onCheckout,
             modifier = Modifier.width(300.dp).fillMaxHeight(),
@@ -225,6 +247,8 @@ private fun OrderRail(
     state: OrderUiState,
     onIncrement: (OrderLineUi) -> Unit,
     onDecrement: (OrderLineUi) -> Unit,
+    onLineClick: (OrderLineUi) -> Unit,
+    onDiscount: () -> Unit,
     onSend: () -> Unit,
     onCheckout: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -235,7 +259,9 @@ private fun OrderRail(
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
         LazyColumn(Modifier.weight(1f)) {
-            items(state.lines, key = { it.id }) { line -> OrderLineRow(line, onIncrement, onDecrement) }
+            items(state.lines, key = { it.id }) { line ->
+                OrderLineRow(line, onIncrement, onDecrement, onLineClick)
+            }
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -245,7 +271,13 @@ private fun OrderRail(
         if (state.totals.taxMinor != 0L) TotalRow("Tax", state.totals.taxMinor)
         TotalRow("Total", state.totals.totalMinor, emphasise = true)
 
-        Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        PosOutlinedButton(
+            text = "Discount",
+            onClick = onDiscount,
+            enabled = state.lines.any { !it.voided },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        )
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PosOutlinedButton(
                 text = "Send",
                 onClick = onSend,
@@ -267,12 +299,18 @@ private fun OrderLineRow(
     line: OrderLineUi,
     onIncrement: (OrderLineUi) -> Unit,
     onDecrement: (OrderLineUi) -> Unit,
+    onLineClick: (OrderLineUi) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
+        Column(
+            Modifier
+                .weight(1f)
+                // A voided line is history — tapping it must not offer to void it again.
+                .then(if (line.voided) Modifier else Modifier.clickable { onLineClick(line) }),
+        ) {
             Text(
                 text = "${line.quantity}× ${line.name}",
                 textDecoration = if (line.voided) TextDecoration.LineThrough else TextDecoration.None,

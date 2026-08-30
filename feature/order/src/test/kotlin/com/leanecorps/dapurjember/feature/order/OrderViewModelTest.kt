@@ -3,14 +3,19 @@ package com.leanecorps.dapurjember.feature.order
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.leanecorps.dapurjember.core.common.money.Money
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.StaffRole
 import com.leanecorps.dapurjember.core.domain.menu.Category
 import com.leanecorps.dapurjember.core.domain.menu.MenuItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuVariant
 import com.leanecorps.dapurjember.core.domain.menu.Modifier
 import com.leanecorps.dapurjember.core.domain.menu.ModifierGroup
 import com.leanecorps.dapurjember.core.domain.menu.ObserveMenuUseCase
+import com.leanecorps.dapurjember.core.domain.order.DiscountKind
 import com.leanecorps.dapurjember.core.domain.order.OpenOrderParams
+import com.leanecorps.dapurjember.core.domain.order.VoidReason
 import com.leanecorps.dapurjember.core.testing.coroutines.MainDispatcherExtension
+import com.leanecorps.dapurjember.core.testing.repository.FakeAuthRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeMenuRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeOrderRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeSessionRepository
@@ -29,6 +34,8 @@ class OrderViewModelTest {
     private val menu = FakeMenuRepository()
     private val orders = FakeOrderRepository()
     private val session = FakeSessionRepository()
+    private val auth = FakeAuthRepository(session)
+    private val authorise = AuthoriseUseCase(auth, session)
 
     private suspend fun viewModel(): OrderViewModel {
         menu.upsertCategory(Category(id = "c1", name = "Rice"))
@@ -49,6 +56,7 @@ class OrderViewModelTest {
             menuRepository = menu,
             orderRepository = orders,
             sessionRepository = session,
+            authorise = authorise,
         )
     }
 
@@ -110,6 +118,7 @@ class OrderViewModelTest {
             menuRepository = menu,
             orderRepository = orders,
             sessionRepository = session,
+            authorise = authorise,
         )
 
         vm.uiState.test {
@@ -145,6 +154,108 @@ class OrderViewModelTest {
             val sent = awaitItem()
             assertTrue(sent.lines.single().sent)
             assertTrue(!sent.canSend)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // --- Void (S07 / FR-O4) and step-up authorisation (FR-A3) ---
+
+    /** Signs "staff-1" in as [role] so the permission check has someone to look at. */
+    private suspend fun signInAs(role: StaffRole) {
+        auth.addStaff(id = "staff-1", name = "Wira", pin = "1111", role = role)
+        auth.signIn("staff-1", "1111")
+    }
+
+    private suspend fun addSentLine(vm: OrderViewModel): OrderLineUi {
+        vm.addTile(vm.uiState.value.board.single())
+        vm.send()
+        return vm.uiState.value.lines.single()
+    }
+
+    @Test
+    fun `a waiter voiding a sent line must step up, and a manager PIN authorises it`() = runTest {
+        signInAs(StaffRole.WAITER)
+        auth.addStaff(id = "mgr", name = "Sari", pin = "9999", role = StaffRole.MANAGER)
+        val vm = viewModel()
+
+        vm.uiState.test {
+            skipItems(1)
+            val line = addSentLine(vm)
+            var state = awaitItem()
+            while (!state.lines.single().sent) state = awaitItem()
+
+            vm.openLineAction(line)
+            var sheet = awaitItem()
+            while (sheet.lineAction == null) sheet = awaitItem()
+            assertTrue(sheet.lineAction!!.needsStepUp)
+            assertTrue(!sheet.lineAction!!.canVoid) // no PIN entered yet
+
+            // A wrong PIN is refused and the line stays active.
+            vm.editLineAction { it.copy(pin = "0000") }
+            vm.confirmVoid()
+            var refused = awaitItem()
+            while (refused.lineAction?.error == null) refused = awaitItem()
+            assertTrue(!orders.order(vm.uiState.value.orderId)!!.lines.single().voided)
+
+            vm.editLineAction { it.copy(pin = "9999", reason = VoidReason.QUALITY_ISSUE, note = "cold") }
+            vm.confirmVoid()
+            var done = awaitItem()
+            while (done.lineAction != null) done = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val voided = orders.order(orders.order("order-1")!!.id)!!.lines.single()
+        assertTrue(voided.voided)
+        assertEquals("Quality issue — cold", voided.voidReason)
+    }
+
+    @Test
+    fun `a manager voids without any step-up prompt`() = runTest {
+        signInAs(StaffRole.MANAGER)
+        val vm = viewModel()
+
+        vm.uiState.test {
+            skipItems(1)
+            val line = addSentLine(vm)
+            var state = awaitItem()
+            while (!state.lines.single().sent) state = awaitItem()
+
+            vm.openLineAction(line)
+            var sheet = awaitItem()
+            while (sheet.lineAction == null) sheet = awaitItem()
+            assertTrue(!sheet.lineAction!!.needsStepUp)
+            assertTrue(sheet.lineAction!!.canVoid)
+
+            vm.confirmVoid()
+            var done = awaitItem()
+            while (done.lineAction != null) done = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(orders.order("order-1")!!.lines.single().voided)
+    }
+
+    @Test
+    fun `a discount needs a reason and records who authorised it`() = runTest {
+        signInAs(StaffRole.OWNER)
+        val vm = viewModel()
+
+        vm.uiState.test {
+            skipItems(1)
+            vm.addTile(vm.uiState.value.board.single())
+            awaitItem()
+
+            vm.openDiscount()
+            var sheet = awaitItem()
+            while (sheet.discount == null) sheet = awaitItem()
+            assertTrue(!sheet.discount!!.needsStepUp) // an owner already holds the permission
+
+            vm.editDiscount { it.copy(kind = DiscountKind.PERCENT, valueText = "10") }
+            assertTrue(!vm.uiState.value.discount!!.canApply) // reason still missing
+
+            vm.editDiscount { it.copy(reason = "loyalty") }
+            assertTrue(vm.uiState.value.discount!!.canApply)
+            assertEquals(1_000L, vm.uiState.value.discount!!.value) // 10% -> 1000 basis points
             cancelAndIgnoreRemainingEvents()
         }
     }

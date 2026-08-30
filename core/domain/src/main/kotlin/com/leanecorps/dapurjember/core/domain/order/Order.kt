@@ -33,6 +33,22 @@ data class Order(
 
 enum class PaymentMethod { CASH, CARD, EWALLET, OTHER }
 
+/**
+ * The fixed reason list a void must pick from (FR-O4). Free text may be appended, but a
+ * reason is never optional — a void with no stated cause is indistinguishable from theft.
+ */
+enum class VoidReason {
+    WRONG_ORDER,
+    CUSTOMER_CHANGED_MIND,
+    QUALITY_ISSUE,
+    OUT_OF_STOCK,
+    STAFF_ERROR,
+    OTHER,
+    ;
+
+    val label: String get() = name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+}
+
 data class Payment(
     val id: String,
     val method: PaymentMethod,

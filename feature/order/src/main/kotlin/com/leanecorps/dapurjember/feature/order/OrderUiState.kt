@@ -1,7 +1,9 @@
 package com.leanecorps.dapurjember.feature.order
 
 import com.leanecorps.dapurjember.core.common.money.Money
+import com.leanecorps.dapurjember.core.domain.order.DiscountKind
 import com.leanecorps.dapurjember.core.domain.order.OrderState
+import com.leanecorps.dapurjember.core.domain.order.VoidReason
 
 data class OrderUiState(
     val loading: Boolean = true,
@@ -15,6 +17,8 @@ data class OrderUiState(
     val lines: List<OrderLineUi> = emptyList(),
     val totals: TotalsUi = TotalsUi(),
     val picker: ModifierPickerUiState? = null,
+    val lineAction: LineActionUiState? = null,
+    val discount: DiscountUiState? = null,
 ) {
     val canSend: Boolean get() = lines.any { !it.voided && !it.sent }
     val canPay: Boolean get() = lines.any { !it.voided } && state != OrderState.PAID && state != OrderState.CLOSED
@@ -50,6 +54,54 @@ data class PickerGroupUi(
 }
 
 data class PickerModifierUi(val id: String, val name: String, val priceDeltaMinor: Long)
+
+/**
+ * The line-detail / void sheet (S07). [needsStepUp] is decided in the domain, so the PIN
+ * field appears only when the signed-in staff genuinely lacks the permission (FR-A3).
+ */
+data class LineActionUiState(
+    val lineId: String,
+    val lineName: String,
+    val sent: Boolean,
+    val reason: VoidReason = VoidReason.WRONG_ORDER,
+    val note: String = "",
+    val needsStepUp: Boolean = false,
+    val pin: String = "",
+    val error: String? = null,
+) {
+    val canVoid: Boolean get() = !needsStepUp || pin.length >= MIN_PIN
+
+    /** The stored reason: the fixed label, plus free text when the cashier added any (FR-O4). */
+    val storedReason: String
+        get() = if (note.isBlank()) reason.label else "${reason.label} — ${note.trim()}"
+}
+
+/** The discount sheet (S11). Percent is entered in whole percent, fixed in minor units. */
+data class DiscountUiState(
+    val kind: DiscountKind = DiscountKind.PERCENT,
+    val valueText: String = "",
+    val reason: String = "",
+    val needsStepUp: Boolean = false,
+    val pin: String = "",
+    val error: String? = null,
+) {
+    /** Basis points for PERCENT, minor units for FIXED — matches `ApplyDiscountParams.value`. */
+    val value: Long?
+        get() = when (kind) {
+            DiscountKind.PERCENT -> valueText.trim().toDoubleOrNull()
+                ?.takeIf { it > 0.0 && it <= MAX_PERCENT }
+                ?.let { (it * BASIS_POINTS_PER_PERCENT).toLong() }
+
+            DiscountKind.FIXED -> valueText.trim().toLongOrNull()?.takeIf { it > 0 }
+        }
+
+    val canApply: Boolean
+        get() = value != null && reason.isNotBlank() && (!needsStepUp || pin.length >= MIN_PIN)
+}
+
+private const val MIN_PIN = 4
+private const val MAX_PERCENT = 100.0
+private const val BASIS_POINTS_PER_PERCENT = 100
 
 data class CategoryTabUi(val id: String, val name: String)
 
