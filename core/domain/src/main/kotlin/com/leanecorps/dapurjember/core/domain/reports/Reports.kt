@@ -14,6 +14,15 @@ interface ReportsRepository {
 
     /** Sales by menu item for the day, best-selling by revenue first (S23). */
     suspend fun salesByItem(businessDay: String): List<ItemSales>
+
+    /** Sales grouped by category, best-selling by revenue first (FR-R2). */
+    suspend fun salesByCategory(businessDay: String): List<CategorySales>
+
+    /**
+     * Voids and discounts for the day, with who authorised each (S25). The trust feature —
+     * it is what lets an owner see that staff cannot quietly delete a sale.
+     */
+    suspend fun auditEntries(businessDay: String): List<AuditEntry>
 }
 
 data class DailySummary(
@@ -57,5 +66,19 @@ data class ItemSales(
     val marginPercent: Double?
         get() = if (gross.isZero) null else profit.minor * PERCENT / gross.minor
 }
+
+data class CategorySales(val name: String, val quantity: Int, val gross: Money)
+
+enum class AuditKind { VOID, DISCOUNT }
+
+/** One privileged action, resolved to names for display (S25). */
+data class AuditEntry(
+    val kind: AuditKind,
+    val staffName: String,
+    val description: String,
+    val reason: String?,
+    val amount: Money,
+    val at: Long,
+)
 
 private const val PERCENT = 100.0

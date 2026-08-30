@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.domain.order.PaymentMethod
+import com.leanecorps.dapurjember.core.domain.reports.AuditKind
 import com.leanecorps.dapurjember.core.testing.database.InventoryEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.OrderEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.seedOrderPrerequisites
@@ -115,6 +116,33 @@ class ReportsRepositoryImplTest {
         assertEquals(10_000L, nasiGoreng.cost.minor)
         assertEquals(20_000L, nasiGoreng.profit.minor) // 30_000 gross - 10_000 cost
         assertEquals(66.7, nasiGoreng.marginPercent!!, 0.05)
+    }
+
+    @Test
+    fun `salesByCategory groups through the live category`() = runTest {
+        val rows = repo.salesByCategory(day)
+
+        // Both lines point at var-1 -> item-1 -> category "Rice" from the seed fixtures.
+        assertEquals(listOf("Rice"), rows.map { it.name })
+        assertEquals(3, rows.single().quantity)
+        assertEquals(45_000L, rows.single().gross.minor)
+    }
+
+    @Test
+    fun `auditEntries lists voids and discounts newest first with who did it`() = runTest {
+        db.orderLineDao().upsert(
+            OrderEntityFixtures.orderLine(id = "l3", orderId = "o1", qty = 1)
+                .copy(state = "VOIDED", voidReason = "wrong order", updatedAt = 99L),
+        )
+
+        val entries = repo.auditEntries(day)
+
+        assertEquals(listOf(AuditKind.VOID, AuditKind.DISCOUNT), entries.map { it.kind })
+        val void = entries.first()
+        assertEquals("Sari", void.staffName)
+        assertEquals("wrong order", void.reason)
+        assertEquals(15_000L, void.amount.minor)
+        assertEquals("promo", entries.last().reason)
     }
 
     @Test

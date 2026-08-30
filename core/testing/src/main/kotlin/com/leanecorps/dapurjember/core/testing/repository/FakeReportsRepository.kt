@@ -1,6 +1,8 @@
 package com.leanecorps.dapurjember.core.testing.repository
 
 import com.leanecorps.dapurjember.core.common.money.Money
+import com.leanecorps.dapurjember.core.domain.reports.AuditEntry
+import com.leanecorps.dapurjember.core.domain.reports.CategorySales
 import com.leanecorps.dapurjember.core.domain.reports.DailySummary
 import com.leanecorps.dapurjember.core.domain.reports.ItemSales
 import com.leanecorps.dapurjember.core.domain.reports.ReportsRepository
@@ -10,6 +12,8 @@ class FakeReportsRepository : ReportsRepository {
 
     val summaries = mutableMapOf<String, DailySummary>()
     val itemSales = mutableMapOf<String, List<ItemSales>>()
+    val categorySales = mutableMapOf<String, List<CategorySales>>()
+    val audit = mutableMapOf<String, List<AuditEntry>>()
 
     override suspend fun dailySummary(businessDay: String): DailySummary =
         summaries[businessDay] ?: DailySummary(
@@ -26,4 +30,9 @@ class FakeReportsRepository : ReportsRepository {
         )
 
     override suspend fun salesByItem(businessDay: String): List<ItemSales> = itemSales[businessDay].orEmpty()
+
+    override suspend fun salesByCategory(businessDay: String): List<CategorySales> =
+        categorySales[businessDay].orEmpty()
+
+    override suspend fun auditEntries(businessDay: String): List<AuditEntry> = audit[businessDay].orEmpty()
 }

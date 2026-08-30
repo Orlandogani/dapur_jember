@@ -74,6 +74,49 @@ interface ReportsDao {
             "GROUP BY l.item_name_snapshot ORDER BY grossMinor DESC",
     )
     suspend fun salesByItem(businessDay: String): List<ItemSalesRow>
+
+    /**
+     * Sales grouped by category. Unlike the item name, the category is not snapshotted on the
+     * order line, so this joins through to the live `category` row — renaming a category
+     * retroactively regroups history, which is the behaviour an owner expects here.
+     */
+    @Query(
+        "SELECT c.name AS name, SUM(l.qty) AS quantity, " +
+            "SUM(l.qty * l.unit_price_snapshot_minor) AS grossMinor " +
+            "FROM order_line l " +
+            "INNER JOIN orders o ON o.id = l.order_id " +
+            "INNER JOIN menu_variant v ON v.id = l.menu_variant_id " +
+            "INNER JOIN menu_item i ON i.id = v.menu_item_id " +
+            "INNER JOIN category c ON c.id = i.category_id " +
+            "WHERE o.business_day = :businessDay AND o.state IN ('PAID', 'CLOSED') " +
+            "AND l.state = 'ACTIVE' AND l.deleted_at IS NULL AND o.deleted_at IS NULL " +
+            "GROUP BY c.name ORDER BY grossMinor DESC",
+    )
+    suspend fun salesByCategory(businessDay: String): List<CategorySalesRow>
+
+    /** Voided lines for the day, with the staff who added the line and the stated reason (S25). */
+    @Query(
+        "SELECT s.name AS staffName, l.item_name_snapshot AS description, l.void_reason AS reason, " +
+            "(l.qty * l.unit_price_snapshot_minor) AS amountMinor, l.updated_at AS at " +
+            "FROM order_line l " +
+            "INNER JOIN orders o ON o.id = l.order_id " +
+            "INNER JOIN staff s ON s.id = l.added_by_staff_id " +
+            "WHERE o.business_day = :businessDay AND l.state = 'VOIDED' " +
+            "AND l.deleted_at IS NULL AND o.deleted_at IS NULL ORDER BY l.updated_at DESC",
+    )
+    suspend fun voidedLines(businessDay: String): List<AuditRow>
+
+    /** Discounts applied on the day, with who authorised each (S25). */
+    @Query(
+        "SELECT s.name AS staffName, d.type AS description, d.reason AS reason, " +
+            "d.computed_minor AS amountMinor, d.created_at AS at " +
+            "FROM discount d " +
+            "INNER JOIN orders o ON o.id = d.order_id " +
+            "INNER JOIN staff s ON s.id = d.authorised_by_staff_id " +
+            "WHERE o.business_day = :businessDay AND d.deleted_at IS NULL AND o.deleted_at IS NULL " +
+            "ORDER BY d.created_at DESC",
+    )
+    suspend fun discountEntries(businessDay: String): List<AuditRow>
 }
 
 data class DailyTotalsRow(val orderCount: Int, val revenueMinor: Long, val covers: Int)
@@ -83,3 +126,13 @@ data class PaymentMixRow(val method: String, val amountMinor: Long)
 data class CountAndTotalRow(val count: Int, val totalMinor: Long)
 
 data class ItemSalesRow(val name: String, val quantity: Int, val grossMinor: Long, val costMinor: Long)
+
+data class CategorySalesRow(val name: String, val quantity: Int, val grossMinor: Long)
+
+data class AuditRow(
+    val staffName: String,
+    val description: String,
+    val reason: String?,
+    val amountMinor: Long,
+    val at: Long,
+)

@@ -20,8 +20,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,6 +41,11 @@ fun ReportsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val money = { m: Money -> formatMoney(m, state.currencyCode, state.currencyMinorUnits) }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.csvExports.collect { export -> shareCsv(context, export) }
+    }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Daily summary") }) }) { padding ->
         LazyColumn(
@@ -69,14 +76,43 @@ fun ReportsScreen(
 
             state.summary?.let { summary ->
                 item { SummaryCard(summary, money) }
-                item { PosOutlinedButton(text = "Back", onClick = onBack) }
+                item {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
+                        PosOutlinedButton(
+                            text = "Export CSV",
+                            onClick = viewModel::exportCsv,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
                 item { Text("Sales by item", style = MaterialTheme.typography.titleMedium) }
                 if (state.salesByItem.isEmpty()) {
                     item { Text("Nothing sold on this day.", style = MaterialTheme.typography.bodyMedium) }
                 }
-                items(state.salesByItem, key = { it.name }) { row ->
+                items(state.salesByItem, key = { "item_${it.name}" }) { row ->
                     val margin = row.marginPercent?.let { "  ·  ${formatPercent(it)} margin" }.orEmpty()
                     KeyValueRow(label = "${row.quantity}× ${row.name}", value = money(row.gross) + margin)
+                }
+
+                if (state.salesByCategory.isNotEmpty()) {
+                    item { Text("Sales by category", style = MaterialTheme.typography.titleMedium) }
+                    items(state.salesByCategory, key = { "cat_${it.name}" }) { row ->
+                        KeyValueRow("${row.quantity}× ${row.name}", money(row.gross))
+                    }
+                }
+
+                item { Text("Voids & discounts", style = MaterialTheme.typography.titleMedium) }
+                if (state.audit.isEmpty()) {
+                    item { Text("No voids or discounts today.", style = MaterialTheme.typography.bodyMedium) }
+                }
+                items(state.audit, key = { "audit_${it.kind}_${it.at}_${it.description}" }) { entry ->
+                    KeyValueRow(
+                        label = "${entry.kind.name} · ${entry.description} · ${entry.staffName}" +
+                            (entry.reason?.let { " ($it)" } ?: ""),
+                        value = money(entry.amount),
+                    )
                 }
             }
         }

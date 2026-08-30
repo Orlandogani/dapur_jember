@@ -1,8 +1,12 @@
 package com.leanecorps.dapurjember.core.data.reports
 
 import com.leanecorps.dapurjember.core.common.money.Money
+import com.leanecorps.dapurjember.core.data.database.dao.AuditRow
 import com.leanecorps.dapurjember.core.data.database.dao.ReportsDao
 import com.leanecorps.dapurjember.core.domain.order.PaymentMethod
+import com.leanecorps.dapurjember.core.domain.reports.AuditEntry
+import com.leanecorps.dapurjember.core.domain.reports.AuditKind
+import com.leanecorps.dapurjember.core.domain.reports.CategorySales
 import com.leanecorps.dapurjember.core.domain.reports.DailySummary
 import com.leanecorps.dapurjember.core.domain.reports.ItemSales
 import com.leanecorps.dapurjember.core.domain.reports.PaymentMixRow
@@ -39,4 +43,22 @@ internal class ReportsRepositoryImpl @Inject constructor(
         dao.salesByItem(businessDay).map {
             ItemSales(name = it.name, quantity = it.quantity, gross = Money(it.grossMinor), cost = Money(it.costMinor))
         }
+
+    override suspend fun salesByCategory(businessDay: String): List<CategorySales> =
+        dao.salesByCategory(businessDay).map { CategorySales(it.name, it.quantity, Money(it.grossMinor)) }
+
+    override suspend fun auditEntries(businessDay: String): List<AuditEntry> {
+        val voids = dao.voidedLines(businessDay).map { it.toEntry(AuditKind.VOID) }
+        val discounts = dao.discountEntries(businessDay).map { it.toEntry(AuditKind.DISCOUNT) }
+        return (voids + discounts).sortedByDescending { it.at }
+    }
+
+    private fun AuditRow.toEntry(kind: AuditKind) = AuditEntry(
+        kind = kind,
+        staffName = staffName,
+        description = description,
+        reason = reason,
+        amount = Money(amountMinor),
+        at = at,
+    )
 }
