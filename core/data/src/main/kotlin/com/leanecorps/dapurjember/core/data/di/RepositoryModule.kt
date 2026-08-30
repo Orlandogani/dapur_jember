@@ -2,6 +2,7 @@ package com.leanecorps.dapurjember.core.data.di
 
 import com.leanecorps.dapurjember.core.data.auth.AuthRepositoryImpl
 import com.leanecorps.dapurjember.core.data.auth.BcryptPinHasher
+import com.leanecorps.dapurjember.core.data.backup.BackupRepositoryImpl
 import com.leanecorps.dapurjember.core.data.config.StoreProfileRepositoryImpl
 import com.leanecorps.dapurjember.core.data.floor.FloorRepositoryImpl
 import com.leanecorps.dapurjember.core.data.inventory.InventoryRepositoryImpl
@@ -15,6 +16,7 @@ import com.leanecorps.dapurjember.core.data.session.SessionRepositoryImpl
 import com.leanecorps.dapurjember.core.data.shift.ShiftRepositoryImpl
 import com.leanecorps.dapurjember.core.domain.auth.AuthRepository
 import com.leanecorps.dapurjember.core.domain.auth.PinHasher
+import com.leanecorps.dapurjember.core.domain.backup.BackupRepository
 import com.leanecorps.dapurjember.core.domain.config.StoreProfileRepository
 import com.leanecorps.dapurjember.core.domain.floor.FloorRepository
 import com.leanecorps.dapurjember.core.domain.inventory.InventoryRepository
@@ -73,4 +75,7 @@ internal abstract class RepositoryModule {
 
     @Binds
     abstract fun bindInventoryRepository(impl: InventoryRepositoryImpl): InventoryRepository
+
+    @Binds
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
 }

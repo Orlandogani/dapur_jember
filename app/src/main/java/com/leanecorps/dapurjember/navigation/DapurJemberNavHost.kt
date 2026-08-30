@@ -38,6 +38,8 @@ import com.leanecorps.dapurjember.feature.payment.navigation.paymentScreen
 import com.leanecorps.dapurjember.feature.reports.navigation.navigateToReports
 import com.leanecorps.dapurjember.feature.reports.navigation.reportsScreen
 import com.leanecorps.dapurjember.feature.settings.navigation.SETUP_ROUTE
+import com.leanecorps.dapurjember.feature.settings.navigation.backupScreen
+import com.leanecorps.dapurjember.feature.settings.navigation.navigateToBackup
 import com.leanecorps.dapurjember.feature.settings.navigation.navigateToPrinters
 import com.leanecorps.dapurjember.feature.settings.navigation.printersScreen
 import com.leanecorps.dapurjember.feature.settings.navigation.setupWizardScreen
@@ -107,7 +109,11 @@ fun DapurJemberNavHost(
                 }
             },
         )
-        printersScreen(onBack = { navController.popBackStack() })
+        printersScreen(
+            onBack = { navController.popBackStack() },
+            onOpenBackup = { navController.navigateToBackup() },
+        )
+        backupScreen(onBack = { navController.popBackStack() })
         menuScreen(
             onEditItem = { itemId -> navController.navigateToMenuItemEditor(itemId) },
             onImportCsv = { navController.navigateToMenuCsvImport() },
