@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leanecorps.dapurjember.core.designsystem.component.MoneyText
 import com.leanecorps.dapurjember.core.designsystem.component.PosButton
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
+import com.leanecorps.dapurjember.core.designsystem.component.SecureScreen
 import com.leanecorps.dapurjember.core.domain.order.PaymentMethod
 
 @Composable
@@ -36,6 +37,7 @@ fun PaymentScreen(
     viewModel: PaymentViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SecureScreen()
     PaymentScreen(
         state = state,
         onPay = viewModel::pay,

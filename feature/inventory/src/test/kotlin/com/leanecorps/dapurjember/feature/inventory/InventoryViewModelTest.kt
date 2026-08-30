@@ -1,10 +1,13 @@
 package com.leanecorps.dapurjember.feature.inventory
 
 import com.leanecorps.dapurjember.core.common.money.Money
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.StaffRole
 import com.leanecorps.dapurjember.core.domain.inventory.BaseUnit
 import com.leanecorps.dapurjember.core.domain.inventory.Ingredient
 import com.leanecorps.dapurjember.core.domain.inventory.StockReason
 import com.leanecorps.dapurjember.core.testing.coroutines.MainDispatcherExtension
+import com.leanecorps.dapurjember.core.testing.repository.FakeAuthRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeInventoryRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeSessionRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeStoreProfileRepository
@@ -26,10 +29,19 @@ class InventoryViewModelTest {
     private val inventory = FakeInventoryRepository()
     private val session = FakeSessionRepository() // currentStaffId() = "staff-1"
     private val profiles = FakeStoreProfileRepository()
-    private val viewModel by lazy { InventoryViewModel(inventory, session, profiles) }
+    private val auth = FakeAuthRepository(session)
+    private val viewModel by lazy {
+        InventoryViewModel(inventory, session, AuthoriseUseCase(auth, session), profiles)
+    }
+
+    /** The signed-in "staff-1" needs a real record for the permission check to resolve. */
+    private fun signInAs(role: StaffRole) {
+        auth.addStaff(id = "staff-1", name = "Sari", pin = "1111", role = role)
+    }
 
     @Test
     fun `saving a new ingredient adds it to the list`() = runTest {
+        signInAs(StaffRole.MANAGER)
         viewModel.startAdd()
         viewModel.editIngredient { it.copy(name = "Rice", purchaseUnit = "sack", purchaseToBaseFactorText = "25000") }
         viewModel.saveIngredient()
@@ -40,6 +52,7 @@ class InventoryViewModelTest {
 
     @Test
     fun `applying a purchase adjustment moves stock and cost`() = runTest {
+        signInAs(StaffRole.MANAGER)
         inventory.upsertIngredient(
             Ingredient(
                 id = "i1",
@@ -61,5 +74,30 @@ class InventoryViewModelTest {
         val chicken = inventory.getIngredient("i1")!!
         assertEquals(1_000.0, chicken.currentStockBase, 0.0)
         assertEquals(Money(50), chicken.avgCostPerBase)
+    }
+
+    @Test
+    fun `a waiter cannot apply a stock adjustment even if the dialog is reached`() = runTest {
+        signInAs(StaffRole.WAITER)
+        inventory.upsertIngredient(
+            Ingredient(
+                id = "i1",
+                name = "Chicken",
+                baseUnit = BaseUnit.G,
+                purchaseUnit = "kg",
+                purchaseToBaseFactor = 1_000.0,
+                currentStockBase = 500.0,
+                avgCostPerBase = Money.ZERO,
+                lowStockThresholdBase = 0.0,
+            ),
+        )
+        viewModel.startAdjust("i1")
+        advanceUntilIdle()
+        viewModel.editAdjust { it.copy(qtyText = "1000", reason = StockReason.PURCHASE, unitCostText = "50") }
+
+        viewModel.applyAdjust()
+        advanceUntilIdle()
+
+        assertEquals(500.0, inventory.getIngredient("i1")!!.currentStockBase, 0.0)
     }
 }

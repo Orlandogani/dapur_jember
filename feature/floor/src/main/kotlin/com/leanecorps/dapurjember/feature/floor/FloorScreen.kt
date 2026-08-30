@@ -78,7 +78,16 @@ internal fun FloorScreen(
                 actions = {
                     TextButton(onClick = onOpenMenu) { Text("Menu") }
                     TextButton(onClick = onOpenReports) { Text("Reports") }
-                    TextButton(onClick = onOpenInventory) { Text("Inventory") }
+                    TextButton(onClick = onOpenInventory) {
+                        Text(
+                            if (state.lowStockCount > 0) "Inventory (${state.lowStockCount})" else "Inventory",
+                            color = if (state.lowStockCount > 0) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                    }
                     TextButton(onClick = onOpenSettings) { Text("Settings") }
                 },
             )

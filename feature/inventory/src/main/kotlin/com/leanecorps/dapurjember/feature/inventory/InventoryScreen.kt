@@ -43,8 +43,22 @@ fun InventoryScreen(
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
-                PosButton(text = "Add ingredient", onClick = viewModel::startAdd, modifier = Modifier.weight(1f))
+                PosButton(
+                    text = "Add ingredient",
+                    onClick = viewModel::startAdd,
+                    enabled = state.canAdjust,
+                    modifier = Modifier.weight(1f),
+                )
             }
+            if (!state.canAdjust && !state.loading) {
+                Text(
+                    "Stock changes are available to managers and owners.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
+
             if (state.ingredients.isEmpty() && !state.loading) {
                 Text(
                     "No ingredients yet.",
@@ -67,8 +81,16 @@ fun InventoryScreen(
                                 },
                             )
                             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                PosOutlinedButton(text = "Edit", onClick = { viewModel.startEdit(row.id) })
-                                PosOutlinedButton(text = "Adjust", onClick = { viewModel.startAdjust(row.id) })
+                                PosOutlinedButton(
+                                    text = "Edit",
+                                    onClick = { viewModel.startEdit(row.id) },
+                                    enabled = state.canAdjust,
+                                )
+                                PosOutlinedButton(
+                                    text = "Adjust",
+                                    onClick = { viewModel.startAdjust(row.id) },
+                                    enabled = state.canAdjust,
+                                )
                             }
                         }
                     }

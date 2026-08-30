@@ -7,6 +7,7 @@ import com.leanecorps.dapurjember.core.domain.floor.TableState
 import com.leanecorps.dapurjember.core.domain.floor.TableType
 import com.leanecorps.dapurjember.core.testing.coroutines.MainDispatcherExtension
 import com.leanecorps.dapurjember.core.testing.repository.FakeFloorRepository
+import com.leanecorps.dapurjember.core.testing.repository.FakeInventoryRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -19,7 +20,8 @@ class FloorViewModelTest {
     val mainDispatcher = MainDispatcherExtension()
 
     private val repository = FakeFloorRepository()
-    private fun viewModel() = FloorViewModel(repository)
+    private val inventory = FakeInventoryRepository()
+    private fun viewModel() = FloorViewModel(repository, inventory)
 
     private fun table(id: String, areaId: String, state: TableState = TableState.FREE) = DiningTable(
         id = id,

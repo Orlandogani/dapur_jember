@@ -5,6 +5,8 @@ import com.leanecorps.dapurjember.core.domain.floor.TableState
 
 data class FloorUiState(
     val areas: List<FloorAreaUi> = emptyList(),
+    /** Ingredients at or below their threshold (FR-I7). */
+    val lowStockCount: Int = 0,
     val loading: Boolean = true,
 ) {
     val isEmpty: Boolean get() = !loading && areas.isEmpty()

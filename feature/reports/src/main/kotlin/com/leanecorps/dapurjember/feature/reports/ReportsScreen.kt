@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.common.money.formatMoney
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
+import com.leanecorps.dapurjember.core.designsystem.component.SecureScreen
 import com.leanecorps.dapurjember.core.domain.reports.DailySummary
 import java.util.Locale
 
@@ -40,8 +41,15 @@ fun ReportsScreen(
     viewModel: ReportsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val canView by viewModel.canView.collectAsStateWithLifecycle()
+    SecureScreen()
     val money = { m: Money -> formatMoney(m, state.currencyCode, state.currencyMinorUnits) }
     val context = LocalContext.current
+
+    if (!canView) {
+        PermissionDenied(onBack = onBack)
+        return
+    }
 
     LaunchedEffect(Unit) {
         viewModel.csvExports.collect { export -> shareCsv(context, export) }
@@ -146,6 +154,22 @@ private fun SummaryCard(summary: DailySummary, money: (Money) -> String) {
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             KeyValueRow("Discounts", "${summary.discountCount} · ${money(summary.discountTotal)}")
             KeyValueRow("Voided orders / lines", "${summary.voidedOrders} / ${summary.voidedLines}")
+        }
+    }
+}
+
+@Composable
+private fun PermissionDenied(onBack: () -> Unit) {
+    Scaffold(topBar = { TopAppBar(title = { Text("Daily summary") }) }) { padding ->
+        Column(
+            Modifier.fillMaxSize().padding(padding).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "Reports are available to managers and owners.",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            PosOutlinedButton(text = "Back", onClick = onBack)
         }
     }
 }

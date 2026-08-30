@@ -2,6 +2,8 @@ package com.leanecorps.dapurjember.feature.inventory
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.Permission
 import com.leanecorps.dapurjember.core.domain.config.StoreProfileRepository
 import com.leanecorps.dapurjember.core.domain.inventory.BaseUnit
 import com.leanecorps.dapurjember.core.domain.inventory.InventoryRepository
@@ -20,21 +22,25 @@ import javax.inject.Inject
 class InventoryViewModel @Inject constructor(
     private val inventory: InventoryRepository,
     private val session: SessionRepository,
+    private val authorise: AuthoriseUseCase,
     storeProfiles: StoreProfileRepository,
 ) : ViewModel() {
 
     private val editor = MutableStateFlow<IngredientDraft?>(null)
     private val adjust = MutableStateFlow<AdjustDraft?>(null)
     private val minorUnits = MutableStateFlow(0)
+    private val canAdjust = MutableStateFlow(false)
 
     val uiState: StateFlow<InventoryUiState> = combine(
         inventory.observeIngredients(),
         editor,
         adjust,
         minorUnits,
-    ) { ingredients, editorState, adjustState, scale ->
+        canAdjust,
+    ) { ingredients, editorState, adjustState, scale, allowed ->
         InventoryUiState(
             loading = false,
+            canAdjust = allowed,
             currencyMinorUnits = scale,
             ingredients = ingredients.map { it.toRowUi() },
             editor = editorState,
@@ -43,7 +49,10 @@ class InventoryViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), InventoryUiState())
 
     init {
-        viewModelScope.launch { minorUnits.value = storeProfiles.getProfile()?.currencyMinorUnits ?: 0 }
+        viewModelScope.launch {
+            minorUnits.value = storeProfiles.getProfile()?.currencyMinorUnits ?: 0
+            canAdjust.value = authorise.currentUserCan(Permission.ADJUST_STOCK)
+        }
     }
 
     fun startAdd() {
@@ -96,8 +105,8 @@ class InventoryViewModel @Inject constructor(
     }
 
     fun applyAdjust() {
-        val draft = adjust.value ?: return
-        if (!draft.canApply) return
+        // FR-I6 stock adjustments are audit-logged and privileged — enforce, don't just hide.
+        val draft = adjust.value?.takeIf { it.canApply && canAdjust.value } ?: return
         viewModelScope.launch {
             val staffId = session.currentStaffId() ?: return@launch
             inventory.adjustStock(draft.toAdjustment(staffId, minorUnits.value))

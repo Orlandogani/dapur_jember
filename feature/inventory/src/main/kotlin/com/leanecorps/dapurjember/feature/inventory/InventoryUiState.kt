@@ -11,6 +11,8 @@ import java.math.RoundingMode
 
 data class InventoryUiState(
     val loading: Boolean = true,
+    /** ADJUST_STOCK — a waiter may look at stock levels but not change them. */
+    val canAdjust: Boolean = false,
     val currencyMinorUnits: Int = 0,
     val ingredients: List<IngredientRowUi> = emptyList(),
     val editor: IngredientDraft? = null,

@@ -2,6 +2,8 @@ package com.leanecorps.dapurjember.feature.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.leanecorps.dapurjember.core.domain.auth.AuthoriseUseCase
+import com.leanecorps.dapurjember.core.domain.auth.Permission
 import com.leanecorps.dapurjember.core.domain.config.StoreProfileRepository
 import com.leanecorps.dapurjember.core.domain.reports.ReportCsv
 import com.leanecorps.dapurjember.core.domain.reports.ReportsRepository
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -28,7 +31,13 @@ class ReportsViewModel @Inject constructor(
     session: SessionRepository,
     private val storeProfiles: StoreProfileRepository,
     private val reports: ReportsRepository,
+    private val authorise: AuthoriseUseCase,
 ) : ViewModel() {
+
+    private val _canView = MutableStateFlow(true)
+
+    /** FR-A3: reports are manager-and-up. Checked here, not only by hiding the button. */
+    val canView: StateFlow<Boolean> = _canView.asStateFlow()
 
     private val businessDay = MutableStateFlow<String?>(null)
     private var currencyCode = ""
@@ -78,6 +87,12 @@ class ReportsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            val allowed = authorise.currentUserCan(Permission.VIEW_REPORTS)
+            _canView.value = allowed
+            // Enforcement, not decoration: without the permission the figures are never loaded,
+            // so navigating straight to this route still shows nothing (arch §7).
+            if (!allowed) return@launch
+
             storeProfiles.getProfile()?.let {
                 currencyCode = it.currencyCode
                 currencyMinorUnits = it.currencyMinorUnits
