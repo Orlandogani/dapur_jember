@@ -3,6 +3,7 @@ package com.leanecorps.dapurjember.core.data.menu
 import androidx.room.withTransaction
 import com.leanecorps.dapurjember.core.common.id.UuidV7
 import com.leanecorps.dapurjember.core.common.time.TimeProvider
+import com.leanecorps.dapurjember.core.data.database.AuditLogRecorder
 import com.leanecorps.dapurjember.core.data.database.ChangeLogRecorder
 import com.leanecorps.dapurjember.core.data.database.ChangeOp
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
@@ -38,6 +39,7 @@ internal class MenuRepositoryImpl @Inject constructor(
     private val modifierDao: ModifierDao,
     private val itemModifierGroupDao: ItemModifierGroupDao,
     private val changeLog: ChangeLogRecorder,
+    private val auditLog: AuditLogRecorder,
     private val time: TimeProvider,
     private val deviceIds: DeviceIdProvider,
 ) : MenuRepository {
@@ -93,7 +95,11 @@ internal class MenuRepositoryImpl @Inject constructor(
         changeLog.record("menu_variant", variant.id, opFor(existing), now)
     }
 
-    override suspend fun saveItemWithVariants(item: MenuItem, variants: List<MenuVariant>) = db.withTransaction {
+    override suspend fun saveItemWithVariants(
+        item: MenuItem,
+        variants: List<MenuVariant>,
+        actorStaffId: String,
+    ) = db.withTransaction {
         val now = time.nowMillis()
         val device = deviceIds.deviceId()
 
@@ -106,6 +112,20 @@ internal class MenuRepositoryImpl @Inject constructor(
             val existingVariant = menuVariantDao.getById(variant.id)
             menuVariantDao.upsert(variant.toEntity(existingVariant, now, device))
             changeLog.record("menu_variant", variant.id, opFor(existingVariant), now)
+
+            // Only a change to an *existing* price is a price edit. Pricing a new variant is
+            // just data entry, and auditing it would make a CSV import unreadable.
+            if (existingVariant != null && existingVariant.priceMinor != variant.price.minor) {
+                auditLog.record(
+                    actorStaffId = actorStaffId,
+                    action = "PRICE_EDIT",
+                    entityType = "menu_variant",
+                    entityId = variant.id,
+                    at = now,
+                    beforeJson = priceJson(existingVariant.priceMinor),
+                    afterJson = priceJson(variant.price.minor),
+                )
+            }
         }
         menuVariantDao.getForItem(item.id)
             .filter { it.id !in keepIds }
@@ -245,3 +265,9 @@ internal class MenuRepositoryImpl @Inject constructor(
 
     private fun opFor(existing: Any?): ChangeOp = if (existing == null) ChangeOp.INSERT else ChangeOp.UPDATE
 }
+
+/**
+ * The before/after payload for a price edit. Hand-built rather than serialised: it is two
+ * fields, and the audit log must stay readable years from now without a schema to consult.
+ */
+private fun priceJson(priceMinor: Long): String = """{"price_minor":$priceMinor}"""

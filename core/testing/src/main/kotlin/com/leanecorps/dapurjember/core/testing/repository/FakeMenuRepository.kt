@@ -1,5 +1,6 @@
 package com.leanecorps.dapurjember.core.testing.repository
 
+import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.domain.menu.Category
 import com.leanecorps.dapurjember.core.domain.menu.MenuBoardItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuItem
@@ -26,6 +27,19 @@ class FakeMenuRepository : MenuRepository {
 
     /** itemId -> ordered list of groupIds. */
     private val itemGroups = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+
+    /** One recorded price edit, standing in for the `audit_log` row the real repository writes. */
+    data class PriceEdit(
+        val variantId: String,
+        val before: Money,
+        val after: Money,
+        val actorStaffId: String,
+    )
+
+    private val priceEdits = MutableStateFlow<List<PriceEdit>>(emptyList())
+
+    /** The price edits seen so far, oldest first (CLAUDE.md rule 10). */
+    val recordedPriceEdits: List<PriceEdit> get() = priceEdits.value
 
     override fun observeCategories(): Flow<List<Category>> = categories
 
@@ -57,7 +71,19 @@ class FakeMenuRepository : MenuRepository {
     override suspend fun upsertVariant(variant: MenuVariant) =
         variants.update { it.filterNot { v -> v.id == variant.id } + variant }
 
-    override suspend fun saveItemWithVariants(item: MenuItem, newVariants: List<MenuVariant>) {
+    override suspend fun saveItemWithVariants(
+        item: MenuItem,
+        newVariants: List<MenuVariant>,
+        actorStaffId: String,
+    ) {
+        // Mirrors the real repository's rule so tests can assert who was recorded and when.
+        val byId = variants.value.associateBy { it.id }
+        newVariants.forEach { updated ->
+            val existing = byId[updated.id]
+            if (existing != null && existing.price != updated.price) {
+                priceEdits.update { it + PriceEdit(updated.id, existing.price, updated.price, actorStaffId) }
+            }
+        }
         items.update { it.filterNot { i -> i.id == item.id } + item }
         val keep = newVariants.map { it.id }.toSet()
         variants.update { current ->

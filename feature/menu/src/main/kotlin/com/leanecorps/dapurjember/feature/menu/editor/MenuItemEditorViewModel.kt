@@ -172,10 +172,14 @@ class MenuItemEditorViewModel @Inject constructor(
         if (!state.canSave) return
         val current = draft.value ?: return
         viewModelScope.launch {
+            // Resolves who is accountable for the edit; null means not permitted, which also
+            // re-checks MANAGE_MENU at the moment of the write rather than at screen load.
+            val actorId = authorise.actorFor(Permission.MANAGE_MENU, pin = null) ?: return@launch
             val newItemId = current.id ?: UuidV7.generate()
             menuRepository.saveItemWithVariants(
                 item = current.toItem(newItemId),
                 variants = current.toVariants(newItemId, state.currencyMinorUnits),
+                actorStaffId = actorId,
             )
             menuRepository.setItemModifierGroups(newItemId, current.modifierGroupIds)
             done.value = true

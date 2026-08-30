@@ -42,6 +42,7 @@ class ImportMenuCsvUseCaseTest {
             Rice,Nasi Goreng Ayam,Large,30000
             Drinks,Es Teh,,5000
             """.trimIndent().trim(),
+            actorStaffId = ACTOR,
         )
 
         assertEquals(1, summary.categoriesAdded) // only "Drinks" is new
@@ -55,10 +56,12 @@ class ImportMenuCsvUseCaseTest {
 
     @Test
     fun `a file with only bad rows imports nothing and returns the errors`() = runTest {
-        val summary = useCase("Rice,Broken\nRice,Bad,Regular,abc")
+        val summary = useCase("Rice,Broken\nRice,Bad,Regular,abc", ACTOR)
 
         assertEquals(0, summary.itemsImported)
         assertEquals(0, summary.categoriesAdded)
         assertEquals(listOf(1, 2), summary.errors.map { it.line })
     }
 }
+
+private const val ACTOR = "staff-1"

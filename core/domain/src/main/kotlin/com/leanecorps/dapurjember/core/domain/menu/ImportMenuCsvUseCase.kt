@@ -19,7 +19,7 @@ class ImportMenuCsvUseCase @Inject constructor(
 
     data class Summary(val categoriesAdded: Int, val itemsImported: Int, val errors: List<MenuCsvError>)
 
-    suspend operator fun invoke(csvText: String): Summary {
+    suspend operator fun invoke(csvText: String, actorStaffId: String): Summary {
         val minorUnits = storeProfiles.getProfile()?.currencyMinorUnits ?: 0
         val parsed = MenuCsv.parse(csvText, minorUnits)
         if (!parsed.isUsable) return Summary(categoriesAdded = 0, itemsImported = 0, errors = parsed.errors)
@@ -57,6 +57,7 @@ class ImportMenuCsvUseCase @Inject constructor(
                         sortOrder = index,
                     )
                 },
+                actorStaffId = actorStaffId,
             )
         }
 

@@ -29,8 +29,12 @@ interface MenuRepository {
     /**
      * Saves an item and its full variant list in one transaction (S14 item editor): variants
      * not in [variants] are soft-deleted. FR-M4 — an item always keeps at least one variant.
+     *
+     * [actorStaffId] is whoever authorised the edit. Changing the price of an existing variant
+     * is a privileged action, so it writes an `audit_log` row naming them (CLAUDE.md rule 10);
+     * pricing a brand-new variant does not, or a 200-row CSV import would bury the log.
      */
-    suspend fun saveItemWithVariants(item: MenuItem, variants: List<MenuVariant>)
+    suspend fun saveItemWithVariants(item: MenuItem, variants: List<MenuVariant>, actorStaffId: String)
 
     /** FR-M2 — flip the sold-out toggle in one tap from the order screen. */
     suspend fun setItemAvailability(itemId: String, available: Boolean)

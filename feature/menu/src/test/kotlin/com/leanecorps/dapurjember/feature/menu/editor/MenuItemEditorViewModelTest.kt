@@ -18,7 +18,9 @@ import com.leanecorps.dapurjember.core.testing.repository.FakeInventoryRepositor
 import com.leanecorps.dapurjember.core.testing.repository.FakeMenuRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeSessionRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeStoreProfileRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MenuItemEditorViewModelTest {
 
     @JvmField
@@ -101,6 +104,7 @@ class MenuItemEditorViewModelTest {
         menu.saveItemWithVariants(
             MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"),
             listOf(MenuVariant(id = "v1", menuItemId = "i1", name = "Regular", price = Money(1_500))),
+            actorStaffId = "seed",
         )
         inventory.upsertIngredient(
             Ingredient(
@@ -143,6 +147,7 @@ class MenuItemEditorViewModelTest {
         menu.saveItemWithVariants(
             MenuItem(id = "i1", categoryId = "c1", name = "Indomie"),
             listOf(MenuVariant(id = "v1", menuItemId = "i1", name = "Regular", price = Money(1_250))),
+            actorStaffId = "seed",
         )
         val vm = viewModel(itemId = "i1")
 
@@ -180,5 +185,30 @@ class MenuItemEditorViewModelTest {
             assertTrue(menu.observeItemWithVariants("i1").first() != null)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `re-pricing a variant records the signed-in manager as the actor`() = runTest {
+        signInAs(StaffRole.MANAGER)
+        menu.upsertCategory(Category(id = "c1", name = "Rice"))
+        menu.upsertItem(MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"))
+        menu.upsertVariant(MenuVariant(id = "v1", menuItemId = "i1", name = "Regular", price = Money(2_500)))
+        val vm = viewModel("i1")
+
+        vm.uiState.test {
+            var state = expectMostRecentItem()
+            while (state.loading) state = awaitItem()
+
+            vm.editVariant("v1") { it.copy(priceText = "30.00") }
+            vm.save()
+            advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val edit = menu.recordedPriceEdits.single()
+        assertEquals("v1", edit.variantId)
+        assertEquals(Money(2_500), edit.before)
+        assertEquals(Money(3_000), edit.after)
+        assertEquals("u1", edit.actorStaffId)
     }
 }

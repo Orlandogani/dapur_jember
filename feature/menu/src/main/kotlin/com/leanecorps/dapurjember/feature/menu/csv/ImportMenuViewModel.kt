@@ -48,7 +48,12 @@ class ImportMenuViewModel @Inject constructor(
         if (state.value.running || state.value.text.isBlank() || !state.value.canManage) return
         state.update { it.copy(running = true, summary = null) }
         viewModelScope.launch {
-            val summary = importMenuCsv(state.value.text)
+            val actorId = authorise.actorFor(Permission.MANAGE_MENU, pin = null)
+            if (actorId == null) {
+                state.update { it.copy(running = false) }
+                return@launch
+            }
+            val summary = importMenuCsv(state.value.text, actorId)
             state.update { it.copy(running = false, summary = summary) }
         }
     }

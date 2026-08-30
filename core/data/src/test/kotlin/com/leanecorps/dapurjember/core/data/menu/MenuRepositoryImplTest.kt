@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.leanecorps.dapurjember.core.common.money.Money
+import com.leanecorps.dapurjember.core.data.database.AuditLogRecorder
 import com.leanecorps.dapurjember.core.data.database.ChangeLogRecorder
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.data.device.DeviceIdProvider
@@ -13,6 +14,7 @@ import com.leanecorps.dapurjember.core.domain.menu.MenuVariant
 import com.leanecorps.dapurjember.core.domain.menu.Modifier
 import com.leanecorps.dapurjember.core.domain.menu.ModifierGroup
 import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
+import com.leanecorps.dapurjember.core.testing.database.OperationalEntityFixtures
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -45,6 +47,7 @@ class MenuRepositoryImplTest {
             modifierDao = db.modifierDao(),
             itemModifierGroupDao = db.itemModifierGroupDao(),
             changeLog = ChangeLogRecorder(db.changeLogDao(), deviceIds),
+            auditLog = AuditLogRecorder(db.auditLogDao()),
             time = time,
             deviceIds = deviceIds,
         )
@@ -52,6 +55,12 @@ class MenuRepositoryImplTest {
 
     @After
     fun tearDown() = db.close()
+
+    /** `audit_log.actor_staff_id` is a real FK, so the actor has to exist before we can log. */
+    private suspend fun seedActor() = db.staffDao().upsert(OperationalEntityFixtures.staff(id = ACTOR))
+
+    private suspend fun priceEdits() = db.auditLogDao().observeRecent(limit = 50).first()
+        .filter { it.action == "PRICE_EDIT" }
 
     private suspend fun changeOps(): List<String> =
         db.changeLogDao().observeUnsynced().first().map { "${it.entityType}:${it.op}" }
@@ -108,10 +117,15 @@ class MenuRepositoryImplTest {
 
     @Test
     fun `saveItemWithVariants upserts kept variants and soft-deletes the rest in one shot`() = runTest {
+        seedActor()
         repo.upsertCategory(Category(id = "c1", name = "Food"))
         val small = MenuVariant(id = "v1", menuItemId = "i1", name = "Small", price = Money(12_000))
         val large = MenuVariant(id = "v2", menuItemId = "i1", name = "Large", price = Money(18_000))
-        repo.saveItemWithVariants(MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"), listOf(small, large))
+        repo.saveItemWithVariants(
+            MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"),
+            listOf(small, large),
+            actorStaffId = ACTOR,
+        )
         time.advanceBy(1)
 
         // Rename the item, keep Small (re-priced), drop Large, add Family.
@@ -121,6 +135,7 @@ class MenuRepositoryImplTest {
                 small.copy(price = Money(13_000)),
                 MenuVariant(id = "v3", menuItemId = "i1", name = "Family", price = Money(30_000)),
             ),
+            actorStaffId = ACTOR,
         )
 
         val detail = repo.observeItemWithVariants("i1").first()!!
@@ -178,4 +193,49 @@ class MenuRepositoryImplTest {
         repo.setItemModifierGroups("i1", listOf("g1", "g2")) // re-add g1 (unique index survives soft delete)
         assertEquals(listOf("Spice", "Add-ons"), repo.observeItemModifierGroups("i1").first().map { it.group.name })
     }
+
+    @Test
+    fun `re-pricing an existing variant writes one PRICE_EDIT row naming the actor`() = runTest {
+        seedActor()
+        repo.upsertCategory(Category(id = "c1", name = "Food"))
+        val item = MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng")
+        val regular = MenuVariant(id = "v1", menuItemId = "i1", name = "Regular", price = Money(25_000))
+        repo.saveItemWithVariants(item, listOf(regular), actorStaffId = ACTOR)
+
+        // Pricing a brand-new variant is data entry, not a price edit.
+        assertEquals(emptyList<String>(), priceEdits().map { it.entityId })
+
+        time.advanceBy(1)
+        repo.saveItemWithVariants(item, listOf(regular.copy(price = Money(30_000))), actorStaffId = ACTOR)
+
+        val logged = priceEdits().single()
+        assertEquals(ACTOR, logged.actorStaffId)
+        assertEquals("menu_variant", logged.entityType)
+        assertEquals("v1", logged.entityId)
+        assertEquals("""{"price_minor":25000}""", logged.beforeJson)
+        assertEquals("""{"price_minor":30000}""", logged.afterJson)
+    }
+
+    @Test
+    fun `renaming an item without touching the price writes no PRICE_EDIT row`() = runTest {
+        seedActor()
+        repo.upsertCategory(Category(id = "c1", name = "Food"))
+        val regular = MenuVariant(id = "v1", menuItemId = "i1", name = "Regular", price = Money(25_000))
+        repo.saveItemWithVariants(
+            MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"),
+            listOf(regular),
+            actorStaffId = ACTOR,
+        )
+        time.advanceBy(1)
+
+        repo.saveItemWithVariants(
+            MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng Spesial"),
+            listOf(regular),
+            actorStaffId = ACTOR,
+        )
+
+        assertEquals(emptyList<String>(), priceEdits().map { it.entityId })
+    }
 }
+
+private const val ACTOR = "staff-1"
