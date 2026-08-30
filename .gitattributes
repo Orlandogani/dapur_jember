@@ -1,0 +1,13 @@
+# The repository stores text with LF. Windows tooling that rewrites a file in
+# text mode would otherwise turn every file it touches into a whole-file diff.
+* text=auto eol=lf
+
+# Windows batch files and the Gradle wrapper stay exactly as vendored.
+*.bat -text
+gradle/wrapper/** -text
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.jar binary
+*.keystore binary
