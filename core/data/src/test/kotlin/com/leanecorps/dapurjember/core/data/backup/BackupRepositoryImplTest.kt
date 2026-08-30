@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.leanecorps.dapurjember.core.data.crypto.DatabasePassphrase
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
+import com.leanecorps.dapurjember.core.domain.backup.RestoreFailure
 import com.leanecorps.dapurjember.core.domain.backup.RestoreResult
 import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
 import com.leanecorps.dapurjember.core.testing.database.MenuEntityFixtures
@@ -107,7 +108,7 @@ class BackupRepositoryImplTest {
         val result = repo.restore(backup, "not the passphrase".toCharArray())
 
         assertTrue(result is RestoreResult.Failed)
-        assertEquals("Wrong passphrase, or the backup file is damaged.", (result as RestoreResult.Failed).message)
+        assertEquals(RestoreFailure.UNREADABLE, (result as RestoreResult.Failed).reason)
         assertEquals(2, db.categoryDao().observeAll().first().size) // still both categories
     }
 

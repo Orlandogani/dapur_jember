@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Menu list -->
+    <string name="menu_title">Menu</string>
+    <string name="menu_action_modifiers">Modifiers</string>
+    <string name="menu_action_import_csv">Import CSV</string>
+    <string name="menu_action_add_category">Add category</string>
+    <string name="menu_action_add_item">Add item</string>
+    <string name="menu_empty">No menu items yet</string>
+    <string name="menu_category_dialog_title">New category</string>
+    <string name="menu_category_name_label">Category name</string>
+    <string name="menu_action_add">Add</string>
+    <string name="menu_action_cancel">Cancel</string>
+
+    <!-- CSV import (FR-M6) -->
+    <string name="import_title">Import menu CSV</string>
+    <string name="import_help">One row per variant: category, item, variant, price[, available]. A header row is optional; a blank variant becomes \"Regular\".</string>
+    <string name="import_csv_label">CSV</string>
+    <string name="import_action_back">Back</string>
+    <string name="import_action_import">Import</string>
+    <string name="import_action_importing">Importing…</string>
+    <string name="import_summary">Imported %1$d items, added %2$d categories.</string>
+    <string name="import_error_line">Line %1$d: %2$s</string>
+    <string name="import_error_too_few_columns">expected at least 4 columns, got %1$s</string>
+    <string name="import_error_blank_category">category is blank</string>
+    <string name="import_error_blank_item">item is blank</string>
+    <string name="import_error_invalid_price">invalid price \'%1$s\'</string>
+
+    <!-- Item editor -->
+    <string name="editor_title_new">New item</string>
+    <string name="editor_title_edit">Edit item</string>
+    <string name="editor_item_name_label">Item name</string>
+    <string name="editor_category_heading">Category</string>
+    <string name="editor_no_categories">Add a category first.</string>
+    <string name="editor_available">Available</string>
+    <string name="editor_tax_exempt">Tax exempt</string>
+    <string name="editor_variants_heading">Variants</string>
+    <string name="editor_action_add_variant">Add variant</string>
+    <string name="editor_action_remove">×</string>
+    <string name="editor_modifier_groups_heading">Modifier groups</string>
+    <string name="editor_action_delete">Delete</string>
+    <string name="editor_action_save">Save</string>
+    <string name="editor_variant_name_label">Name</string>
+    <string name="editor_variant_price_label">Price</string>
+
+    <!-- Recipe (FR-I2) -->
+    <string name="recipe_action_open">Recipe…</string>
+    <string name="recipe_margin">cost %1$s · %2$s margin</string>
+    <string name="recipe_none">no recipe</string>
+    <string name="recipe_dialog_title">Recipe · %1$s</string>
+    <string name="recipe_action_save">Save recipe</string>
+    <string name="recipe_action_cancel">Cancel</string>
+    <string name="recipe_no_ingredients">Add ingredients in Inventory first.</string>
+    <string name="recipe_cost_so_far">Cost so far: %1$s</string>
+    <string name="recipe_qty_label">Quantity (%1$s)</string>
+    <string name="recipe_qty_unit_fallback">qty</string>
+    <string name="recipe_action_add_ingredient">Add ingredient</string>
+
+    <!-- Modifier groups (FR-M3) -->
+    <string name="groups_title">Modifier groups</string>
+    <string name="groups_action_back">Back</string>
+    <string name="groups_action_add">Add group</string>
+    <string name="groups_empty">No modifier groups yet. Create one (e.g. \"Spice level\") and attach it to items.</string>
+    <string name="groups_summary">%1$s · %2$s · choose %3$d–%4$s</string>
+    <string name="groups_summary_required">required</string>
+    <string name="groups_summary_optional">optional</string>
+    <string name="groups_summary_any">any</string>
+    <plurals name="groups_summary_options">
+        <item quantity="one">%1$d option</item>
+        <item quantity="other">%1$d options</item>
+    </plurals>
+    <string name="groups_editor_new">New modifier group</string>
+    <string name="groups_editor_edit">Edit modifier group</string>
+    <string name="groups_action_save">Save</string>
+    <string name="groups_action_cancel">Cancel</string>
+    <string name="groups_action_delete">Delete</string>
+    <string name="groups_name_label">Group name</string>
+    <string name="groups_required">Required</string>
+    <string name="groups_min_label">Min</string>
+    <string name="groups_max_label">Max (0 = any)</string>
+    <string name="groups_options_heading">Options</string>
+    <string name="groups_action_add_option">Add option</string>
+    <string name="groups_option_name_label">Name</string>
+    <string name="groups_option_price_label">+/-</string>
+    <string name="groups_action_remove">×</string>
+</resources>

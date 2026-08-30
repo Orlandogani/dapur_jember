@@ -67,13 +67,17 @@ data class LineActionUiState(
     val note: String = "",
     val needsStepUp: Boolean = false,
     val pin: String = "",
-    val error: String? = null,
+    val pinRejected: Boolean = false,
 ) {
     val canVoid: Boolean get() = !needsStepUp || pin.length >= MIN_PIN
 
-    /** The stored reason: the fixed label, plus free text when the cashier added any (FR-O4). */
+    /**
+     * The reason written to `order_line.void_reason` and the audit log. Stored as the stable
+     * enum name plus any free text — never a translated label, so an audit report written in
+     * one language still reads correctly in another (FR-O4).
+     */
     val storedReason: String
-        get() = if (note.isBlank()) reason.label else "${reason.label} — ${note.trim()}"
+        get() = if (note.isBlank()) reason.name else "${reason.name} — ${note.trim()}"
 }
 
 /** The discount sheet (S11). Percent is entered in whole percent, fixed in minor units. */
@@ -83,7 +87,7 @@ data class DiscountUiState(
     val reason: String = "",
     val needsStepUp: Boolean = false,
     val pin: String = "",
-    val error: String? = null,
+    val pinRejected: Boolean = false,
 ) {
     /** Basis points for PERCENT, minor units for FIXED — matches `ApplyDiscountParams.value`. */
     val value: Long?

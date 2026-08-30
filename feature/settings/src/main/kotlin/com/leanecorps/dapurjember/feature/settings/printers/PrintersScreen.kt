@@ -2,6 +2,7 @@
 
 package com.leanecorps.dapurjember.feature.settings.printers
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,6 +39,7 @@ import com.leanecorps.dapurjember.core.designsystem.component.PosButton
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
 import com.leanecorps.dapurjember.core.domain.printing.PrinterLink
 import com.leanecorps.dapurjember.core.domain.printing.PrinterRole
+import com.leanecorps.dapurjember.feature.settings.R
 
 @Composable
 fun PrintersScreen(
@@ -48,28 +51,46 @@ fun PrintersScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.message) {
-        state.message?.let {
+    val testQueued = state.testPageQueuedFor
+    val testQueuedText = testQueued?.let { stringResource(R.string.printers_test_queued, it) }
+    LaunchedEffect(testQueuedText) {
+        testQueuedText?.let {
             snackbar.showSnackbar(it)
             viewModel.dismissMessage()
         }
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Printers") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.printers_title)) }) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
-                PosOutlinedButton(text = "Backup", onClick = onOpenBackup, modifier = Modifier.weight(1f))
-                PosOutlinedButton(text = "Staff", onClick = onOpenStaff, modifier = Modifier.weight(1f))
-                PosButton(text = "Add printer", onClick = viewModel::startAdd, modifier = Modifier.weight(1f))
+                PosOutlinedButton(
+                    text = stringResource(R.string.printers_action_back),
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f),
+                )
+                PosOutlinedButton(
+                    text = stringResource(R.string.printers_action_backup),
+                    onClick = onOpenBackup,
+                    modifier = Modifier.weight(1f),
+                )
+                PosOutlinedButton(
+                    text = stringResource(R.string.printers_action_staff),
+                    onClick = onOpenStaff,
+                    modifier = Modifier.weight(1f),
+                )
+                PosButton(
+                    text = stringResource(R.string.printers_action_add),
+                    onClick = viewModel::startAdd,
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             if (state.printers.isEmpty() && !state.loading) {
                 Text(
-                    "No printers yet. Add one so tickets and receipts have somewhere to go.",
+                    stringResource(R.string.printers_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 24.dp),
                 )
@@ -105,12 +126,16 @@ private fun PrinterCard(row: PrinterRowUi, onEdit: () -> Unit, onTest: () -> Uni
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Text(row.name, style = MaterialTheme.typography.titleMedium)
-            Text("${row.transport} · ${row.address}", style = MaterialTheme.typography.bodySmall)
-            Text(row.roles, style = MaterialTheme.typography.labelMedium)
+            Text(
+                stringResource(R.string.printers_connection_summary, stringResource(row.link.labelRes()), row.address),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            val roleLabels = row.roles.map { stringResource(it.labelRes()) }
+            Text(roleLabels.joinToString(SEPARATOR), style = MaterialTheme.typography.labelMedium)
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PosOutlinedButton(text = "Edit", onClick = onEdit)
-                PosOutlinedButton(text = "Test print", onClick = onTest)
-                PosOutlinedButton(text = "Remove", onClick = onDelete)
+                PosOutlinedButton(text = stringResource(R.string.printers_action_edit), onClick = onEdit)
+                PosOutlinedButton(text = stringResource(R.string.printers_action_test), onClick = onTest)
+                PosOutlinedButton(text = stringResource(R.string.printers_action_remove), onClick = onDelete)
             }
         }
     }
@@ -127,42 +152,65 @@ private fun PrinterEditorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Save", onClick = onSave, enabled = editor.canSave) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
-        title = { Text(if (editor.isNew) "Add printer" else "Edit printer") },
+        confirmButton = {
+            PosButton(text = stringResource(R.string.printers_action_save), onClick = onSave, enabled = editor.canSave)
+        },
+        dismissButton = {
+            PosOutlinedButton(
+                text = stringResource(R.string.printers_action_cancel),
+                onClick = onDismiss,
+            )
+        },
+        title = {
+            Text(
+                stringResource(
+                    if (editor.isNew) R.string.printers_editor_new else R.string.printers_editor_edit,
+                ),
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = editor.name,
                     onValueChange = { v -> onChange { it.copy(name = v) } },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.printers_name_label)) },
                     singleLine = true,
                 )
-                ChipRow("Connection", PrinterLink.entries, editor.link) { onSetLink(it) }
+                ChipRow(
+                    label = stringResource(R.string.printers_connection_heading),
+                    options = PrinterLink.entries,
+                    selected = editor.link,
+                    optionLabel = { stringResource(it.labelRes()) },
+                    onSelect = { onSetLink(it) },
+                )
                 OutlinedTextField(
                     value = editor.address,
                     onValueChange = { v -> onChange { it.copy(address = v) } },
-                    label = { Text(addressLabel(editor.link)) },
+                    label = { Text(stringResource(editor.link.addressLabelRes())) },
                     singleLine = true,
                 )
-                ChipRow("Paper width", listOf(58, 80), editor.paperWidthMm) { mm ->
-                    onChange { it.copy(paperWidthMm = mm) }
-                }
+                ChipRow(
+                    label = stringResource(R.string.printers_paper_width_heading),
+                    options = listOf(PAPER_58, PAPER_80),
+                    selected = editor.paperWidthMm,
+                    optionLabel = { it.toString() },
+                    onSelect = { mm -> onChange { it.copy(paperWidthMm = mm) } },
+                )
                 OutlinedTextField(
                     value = editor.codepageText,
                     onValueChange = { v -> onChange { it.copy(codepageText = v) } },
-                    label = { Text("Codepage (ESC t)") },
+                    label = { Text(stringResource(R.string.printers_codepage_label)) },
                     singleLine = true,
                     isError = editor.codepage == null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
-                Text("Roles", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.printers_roles_heading), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PrinterRole.entries.forEach { role ->
                         FilterChip(
                             selected = role in editor.roles,
                             onClick = { onToggleRole(role) },
-                            label = { Text(role.name) },
+                            label = { Text(stringResource(role.labelRes())) },
                         )
                     }
                 }
@@ -172,7 +220,13 @@ private fun PrinterEditorDialog(
 }
 
 @Composable
-private fun <T> ChipRow(label: String, options: List<T>, selected: T, onSelect: (T) -> Unit) {
+private fun <T> ChipRow(
+    label: String,
+    options: List<T>,
+    selected: T,
+    optionLabel: @Composable (T) -> String,
+    onSelect: (T) -> Unit,
+) {
     Column {
         Text(label, style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -180,15 +234,38 @@ private fun <T> ChipRow(label: String, options: List<T>, selected: T, onSelect: 
                 FilterChip(
                     selected = option == selected,
                     onClick = { onSelect(option) },
-                    label = { Text(option.toString()) },
+                    label = { Text(optionLabel(option)) },
                 )
             }
         }
     }
 }
 
-private fun addressLabel(link: PrinterLink): String = when (link) {
-    PrinterLink.TCP -> "Host or host:port"
-    PrinterLink.BLUETOOTH -> "Bluetooth MAC address"
-    PrinterLink.USB -> "USB device name"
+/**
+ * Display labels for the printing enums. The stored values stay the enum names, so a
+ * printer configured in one language still resolves in another (NFR8).
+ */
+@StringRes
+private fun PrinterLink.labelRes(): Int = when (this) {
+    PrinterLink.TCP -> R.string.printer_link_tcp
+    PrinterLink.BLUETOOTH -> R.string.printer_link_bluetooth
+    PrinterLink.USB -> R.string.printer_link_usb
 }
+
+@StringRes
+private fun PrinterLink.addressLabelRes(): Int = when (this) {
+    PrinterLink.TCP -> R.string.printers_address_tcp
+    PrinterLink.BLUETOOTH -> R.string.printers_address_bluetooth
+    PrinterLink.USB -> R.string.printers_address_usb
+}
+
+@StringRes
+private fun PrinterRole.labelRes(): Int = when (this) {
+    PrinterRole.KITCHEN -> R.string.printer_role_kitchen
+    PrinterRole.BAR -> R.string.printer_role_bar
+    PrinterRole.RECEIPT -> R.string.printer_role_receipt
+}
+
+private const val SEPARATOR = ", "
+private const val PAPER_58 = 58
+private const val PAPER_80 = 80

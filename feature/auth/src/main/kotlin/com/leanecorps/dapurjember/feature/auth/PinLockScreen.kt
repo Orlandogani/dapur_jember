@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,7 +56,9 @@ internal fun PinLockScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         Text(
-            text = if (state.firstRun) "Set the owner PIN" else "Enter PIN",
+            text = stringResource(
+                if (state.firstRun) R.string.auth_title_set_owner_pin else R.string.auth_title_enter_pin,
+            ),
             style = MaterialTheme.typography.titleLarge,
         )
 
@@ -80,7 +83,9 @@ internal fun PinLockScreen(
         Keypad(onDigit = onDigit, onDelete = onDelete)
 
         PosButton(
-            text = if (state.firstRun) "Create & sign in" else "Sign in",
+            text = stringResource(
+                if (state.firstRun) R.string.auth_action_create_and_sign_in else R.string.auth_action_sign_in,
+            ),
             onClick = onSubmit,
             enabled = state.canSubmit,
         )

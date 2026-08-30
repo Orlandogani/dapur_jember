@@ -194,7 +194,7 @@ class OrderViewModelTest {
             vm.editLineAction { it.copy(pin = "0000") }
             vm.confirmVoid()
             var refused = awaitItem()
-            while (refused.lineAction?.error == null) refused = awaitItem()
+            while (refused.lineAction?.pinRejected != true) refused = awaitItem()
             assertTrue(!orders.order(vm.uiState.value.orderId)!!.lines.single().voided)
 
             vm.editLineAction { it.copy(pin = "9999", reason = VoidReason.QUALITY_ISSUE, note = "cold") }
@@ -206,7 +206,8 @@ class OrderViewModelTest {
 
         val voided = orders.order(orders.order("order-1")!!.id)!!.lines.single()
         assertTrue(voided.voided)
-        assertEquals("Quality issue — cold", voided.voidReason)
+        // The stored reason is the stable enum name, never a translated label (FR-O4).
+        assertEquals("QUALITY_ISSUE — cold", voided.voidReason)
     }
 
     @Test

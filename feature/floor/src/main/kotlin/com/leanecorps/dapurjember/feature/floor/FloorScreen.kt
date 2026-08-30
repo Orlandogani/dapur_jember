@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,13 +75,17 @@ internal fun FloorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Floor") },
+                title = { Text(stringResource(R.string.floor_title)) },
                 actions = {
-                    TextButton(onClick = onOpenMenu) { Text("Menu") }
-                    TextButton(onClick = onOpenReports) { Text("Reports") }
+                    TextButton(onClick = onOpenMenu) { Text(stringResource(R.string.floor_action_menu)) }
+                    TextButton(onClick = onOpenReports) { Text(stringResource(R.string.floor_action_reports)) }
                     TextButton(onClick = onOpenInventory) {
                         Text(
-                            if (state.lowStockCount > 0) "Inventory (${state.lowStockCount})" else "Inventory",
+                            if (state.lowStockCount > 0) {
+                                stringResource(R.string.floor_action_inventory_low_stock, state.lowStockCount)
+                            } else {
+                                stringResource(R.string.floor_action_inventory)
+                            },
                             color = if (state.lowStockCount > 0) {
                                 MaterialTheme.colorScheme.error
                             } else {
@@ -88,7 +93,7 @@ internal fun FloorScreen(
                             },
                         )
                     }
-                    TextButton(onClick = onOpenSettings) { Text("Settings") }
+                    TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.floor_action_settings)) }
                 },
             )
         },
@@ -103,7 +108,7 @@ internal fun FloorScreen(
                     state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
 
                     state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("No tables configured yet", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.floor_empty), style = MaterialTheme.typography.bodyLarge)
                     }
 
                     else -> LazyVerticalGrid(
@@ -145,12 +150,12 @@ private fun BackupReminderBanner(onOpenSettings: () -> Unit, onDismiss: () -> Un
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "It has been a while since your last backup.",
+                stringResource(R.string.floor_backup_reminder),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onOpenSettings) { Text("Back up") }
-            TextButton(onClick = onDismiss) { Text("Later") }
+            TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.floor_backup_reminder_action)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.floor_backup_reminder_dismiss)) }
         }
     }
 }
@@ -170,7 +175,7 @@ private fun TableCard(table: TableUi, onClick: () -> Unit) {
     ) {
         Column(Modifier.padding(12.dp)) {
             Text(table.label, style = MaterialTheme.typography.titleLarge)
-            Text("${table.seats} seats", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.floor_seats, table.seats), style = MaterialTheme.typography.labelMedium)
             StatusChip(
                 label = table.state.name.replace('_', ' '),
                 color = color,

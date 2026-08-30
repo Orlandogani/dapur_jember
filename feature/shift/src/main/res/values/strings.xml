@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shift_open_title">Open shift</string>
+    <string name="shift_opening_float_label">Opening float (minor units)</string>
+    <string name="shift_action_open">Open</string>
+    <string name="shift_close_title">Close shift — count the drawer</string>
+    <!-- FR-S5: a shift cannot close while an order is unpaid. -->
+    <plurals name="shift_blocked_by_orders">
+        <item quantity="one">%1$d unpaid order — settle it first.</item>
+        <item quantity="other">%1$d unpaid orders — settle them first.</item>
+    </plurals>
+    <string name="shift_counted_cash_label">Counted cash (minor units)</string>
+    <string name="shift_action_reveal_z_report">Reveal Z-report</string>
+    <string name="shift_action_confirm_close">Confirm close</string>
+    <string name="shift_z_counted">Counted</string>
+    <string name="shift_z_expected">Expected</string>
+    <string name="shift_z_variance">Variance</string>
+</resources>

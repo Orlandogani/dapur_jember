@@ -27,18 +27,18 @@ class PrintersViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val editor = MutableStateFlow<PrinterEditorUi?>(null)
-    private val message = MutableStateFlow<String?>(null)
+    private val testQueued = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<PrintersUiState> = combine(
         printers.observePrinters(),
         editor,
-        message,
+        testQueued,
     ) { list, editorState, msg ->
         PrintersUiState(
             loading = false,
             printers = list.map { it.toRowUi() },
             editor = editorState,
-            message = msg,
+            testPageQueuedFor = msg,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), PrintersUiState())
 
@@ -86,12 +86,12 @@ class PrintersViewModel @Inject constructor(
                 paperWidthMm = printer.paperWidthMm,
                 printedAt = LocalDateTime.now().format(TEST_STAMP),
             )
-            message.value = "Test page queued for ${printer.name}"
+            testQueued.value = printer.name
         }
     }
 
     fun dismissMessage() {
-        message.value = null
+        testQueued.value = null
     }
 
     private companion object {

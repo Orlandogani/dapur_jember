@@ -1,5 +1,6 @@
 package com.leanecorps.dapurjember.feature.settings.backup
 
+import com.leanecorps.dapurjember.core.domain.backup.RestoreFailure
 import com.leanecorps.dapurjember.core.testing.coroutines.MainDispatcherExtension
 import com.leanecorps.dapurjember.core.testing.repository.FakeBackupRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -82,7 +83,7 @@ class BackupViewModelTest {
 
         val state = viewModel.uiState.value
         assertFalse(state.restartRequired)
-        assertEquals("Wrong passphrase, or the backup file is damaged.", state.message)
+        assertEquals(BackupMessage.RestoreFailed(RestoreFailure.UNREADABLE), state.message)
         assertEquals("", state.restoreDialog!!.passphrase) // cleared, dialog stays open to retry
     }
 

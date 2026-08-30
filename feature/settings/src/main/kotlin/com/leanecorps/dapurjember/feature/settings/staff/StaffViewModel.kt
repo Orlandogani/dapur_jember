@@ -20,13 +20,16 @@ import javax.inject.Inject
 private const val PIN_MIN = 4
 private const val PIN_MAX = 6
 
+/** The one thing this screen has to say back to the user. Worded in the UI, not here. */
+enum class StaffMessage { CANNOT_DEACTIVATE_SELF, }
+
 data class StaffUiState(
     val loading: Boolean = true,
     val canManage: Boolean = false,
     val currentStaffId: String? = null,
     val staff: List<Staff> = emptyList(),
     val editor: StaffDraft? = null,
-    val message: String? = null,
+    val message: StaffMessage? = null,
 )
 
 data class StaffDraft(
@@ -57,7 +60,7 @@ class StaffViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val editor = MutableStateFlow<StaffDraft?>(null)
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<StaffMessage?>(null)
     private val canManage = MutableStateFlow(false)
     private val currentStaffId = MutableStateFlow<String?>(null)
 
@@ -120,7 +123,7 @@ class StaffViewModel @Inject constructor(
         // Locking yourself out of the only account that can manage staff is unrecoverable
         // without a backup, so refuse it rather than letting the owner do it by accident.
         if (!active && staff.id == actorId) {
-            message.value = "You cannot deactivate the account you are signed in with."
+            message.value = StaffMessage.CANNOT_DEACTIVATE_SELF
         } else {
             viewModelScope.launch { auth.setStaffActive(staff.id, active, actorId) }
         }

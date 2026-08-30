@@ -34,7 +34,7 @@ object MenuCsv {
                 return@forEachIndexed
             }
             if (cells.size < MIN_COLUMNS) {
-                errors += MenuCsvError(index + 1, "expected at least $MIN_COLUMNS columns, got ${cells.size}")
+                errors += MenuCsvError(index + 1, MenuCsvErrorReason.TOO_FEW_COLUMNS, cells.size.toString())
                 return@forEachIndexed
             }
 
@@ -45,9 +45,10 @@ object MenuCsv {
             val available = cells.getOrNull(4)?.let { parseBool(it) } ?: true
 
             when {
-                category.isBlank() -> errors += MenuCsvError(index + 1, "category is blank")
-                item.isBlank() -> errors += MenuCsvError(index + 1, "item is blank")
-                priceMinor == null -> errors += MenuCsvError(index + 1, "invalid price '${cells[3]}'")
+                category.isBlank() -> errors += MenuCsvError(index + 1, MenuCsvErrorReason.BLANK_CATEGORY)
+                item.isBlank() -> errors += MenuCsvError(index + 1, MenuCsvErrorReason.BLANK_ITEM)
+                priceMinor == null ->
+                    errors += MenuCsvError(index + 1, MenuCsvErrorReason.INVALID_PRICE, cells[3])
                 else -> rows += MenuCsvRow(category, item, variant, priceMinor, available)
             }
         }
@@ -73,7 +74,18 @@ data class MenuCsvRow(
     val available: Boolean,
 )
 
-data class MenuCsvError(val line: Int, val message: String)
+/**
+ * Why one CSV row was rejected. A reason code rather than a sentence, so the message the
+ * importer shows can be translated (NFR8) — the domain stays free of user-facing prose.
+ * [detail] carries the offending value where one exists (the bad price, the column count).
+ */
+data class MenuCsvError(
+    val line: Int,
+    val reason: MenuCsvErrorReason,
+    val detail: String? = null,
+)
+
+enum class MenuCsvErrorReason { TOO_FEW_COLUMNS, BLANK_CATEGORY, BLANK_ITEM, INVALID_PRICE }
 
 data class MenuCsvParseResult(val rows: List<MenuCsvRow>, val errors: List<MenuCsvError>) {
     val categories: List<String> get() = rows.map { it.category }.distinct()

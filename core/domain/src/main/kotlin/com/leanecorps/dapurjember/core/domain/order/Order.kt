@@ -44,9 +44,6 @@ enum class VoidReason {
     OUT_OF_STOCK,
     STAFF_ERROR,
     OTHER,
-    ;
-
-    val label: String get() = name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
 }
 
 data class Payment(

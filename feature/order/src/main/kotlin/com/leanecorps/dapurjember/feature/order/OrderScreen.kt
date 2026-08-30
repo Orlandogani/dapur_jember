@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -89,15 +90,21 @@ private fun ModifierPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Add", onClick = onConfirm, enabled = picker.canConfirm) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
+        confirmButton = {
+            PosButton(
+                text = stringResource(R.string.picker_action_add),
+                onClick = onConfirm,
+                enabled = picker.canConfirm,
+            )
+        },
+        dismissButton = { PosOutlinedButton(text = stringResource(R.string.action_cancel), onClick = onDismiss) },
         title = { Text(picker.itemName) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (picker.variants.size > 1) {
                     item {
                         PickerSection(
-                            title = "Size",
+                            title = stringResource(R.string.picker_size),
                             options = picker.variants.map { it.id to it.name },
                             selected = setOf(picker.selectedVariantId),
                             onToggle = { onPickVariant(it) },
@@ -105,11 +112,15 @@ private fun ModifierPickerDialog(
                     }
                 }
                 items(picker.groups, key = { it.id }) { group ->
-                    val label = buildString {
-                        append(group.name)
-                        if (group.required) append(" *")
-                        append(if (group.singleSelect) "  (pick one)" else "  (pick any)")
+                    val name = if (group.required) {
+                        stringResource(R.string.picker_group_required, group.name)
+                    } else {
+                        group.name
                     }
+                    val hint = stringResource(
+                        if (group.singleSelect) R.string.picker_pick_one else R.string.picker_pick_any,
+                    )
+                    val label = stringResource(R.string.picker_group_label, name, hint)
                     PickerSection(
                         title = label,
                         options = group.modifiers.map { it.id to it.name },
@@ -254,8 +265,11 @@ private fun OrderRail(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.padding(12.dp)) {
-        Text("Order ${state.orderNumber}", style = MaterialTheme.typography.titleLarge)
-        Text("${state.guestCount} guests · ${state.state}", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.order_header, state.orderNumber), style = MaterialTheme.typography.titleLarge)
+        Text(
+            stringResource(R.string.order_guests_state, state.guestCount, state.state.name),
+            style = MaterialTheme.typography.labelMedium,
+        )
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
         LazyColumn(Modifier.weight(1f)) {
@@ -265,27 +279,37 @@ private fun OrderRail(
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        TotalRow("Subtotal", state.totals.subtotalMinor)
-        if (state.totals.discountMinor != 0L) TotalRow("Discount", -state.totals.discountMinor)
-        if (state.totals.serviceChargeMinor != 0L) TotalRow("Service", state.totals.serviceChargeMinor)
-        if (state.totals.taxMinor != 0L) TotalRow("Tax", state.totals.taxMinor)
-        TotalRow("Total", state.totals.totalMinor, emphasise = true)
+        TotalRow(stringResource(R.string.order_subtotal), state.totals.subtotalMinor)
+        if (state.totals.discountMinor != 0L) {
+            TotalRow(
+                stringResource(R.string.order_discount),
+                -state.totals.discountMinor,
+            )
+        }
+        if (state.totals.serviceChargeMinor != 0L) {
+            TotalRow(
+                stringResource(R.string.order_service),
+                state.totals.serviceChargeMinor,
+            )
+        }
+        if (state.totals.taxMinor != 0L) TotalRow(stringResource(R.string.order_tax), state.totals.taxMinor)
+        TotalRow(stringResource(R.string.order_total), state.totals.totalMinor, emphasise = true)
 
         PosOutlinedButton(
-            text = "Discount",
+            text = stringResource(R.string.order_action_discount),
             onClick = onDiscount,
             enabled = state.lines.any { !it.voided },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PosOutlinedButton(
-                text = "Send",
+                text = stringResource(R.string.order_action_send),
                 onClick = onSend,
                 enabled = state.canSend,
                 modifier = Modifier.weight(1f),
             )
             PosButton(
-                text = "Pay",
+                text = stringResource(R.string.order_action_pay),
                 onClick = { onCheckout(state.orderId) },
                 enabled = state.canPay,
                 modifier = Modifier.weight(1f),
@@ -312,14 +336,18 @@ private fun OrderLineRow(
                 .then(if (line.voided) Modifier else Modifier.clickable { onLineClick(line) }),
         ) {
             Text(
-                text = "${line.quantity}× ${line.name}",
+                text = stringResource(R.string.order_line, line.quantity, line.name),
                 textDecoration = if (line.voided) TextDecoration.LineThrough else TextDecoration.None,
             )
             line.note?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
         }
         if (!line.voided && !line.sent) {
-            PosOutlinedButton("–", { onDecrement(line) }, Modifier.width(PosTouchTarget))
-            PosOutlinedButton("+", { onIncrement(line) }, Modifier.width(PosTouchTarget))
+            PosOutlinedButton(stringResource(R.string.order_action_decrement), {
+                onDecrement(line)
+            }, Modifier.width(PosTouchTarget))
+            PosOutlinedButton(stringResource(R.string.order_action_increment), {
+                onIncrement(line)
+            }, Modifier.width(PosTouchTarget))
         }
         MoneyText(line.lineTotalMinor.toString(), Modifier.padding(start = 8.dp))
     }

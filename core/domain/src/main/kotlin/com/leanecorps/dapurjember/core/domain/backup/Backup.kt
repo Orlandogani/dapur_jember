@@ -63,5 +63,14 @@ sealed interface RestoreResult {
     /** The database was replaced; the process must restart to reopen it cleanly. */
     data object RestartRequired : RestoreResult
 
-    data class Failed(val message: String) : RestoreResult
+    /** Why the restore did not happen. A code, not a sentence — the wording belongs to the UI. */
+    data class Failed(val reason: RestoreFailure) : RestoreResult
+}
+
+enum class RestoreFailure {
+    /** Wrong passphrase, a damaged file, or a file that is no longer there. */
+    UNREADABLE,
+
+    /** The swap itself failed; the rollback copy was put back, so nothing was lost. */
+    PREVIOUS_DATA_KEPT,
 }

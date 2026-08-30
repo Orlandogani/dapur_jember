@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.leanecorps.dapurjember.core.designsystem.component.MoneyText
@@ -49,8 +50,8 @@ internal fun SplitBillDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Done", onClick = onDismiss) },
-        title = { Text("Split bill") },
+        confirmButton = { PosButton(text = stringResource(R.string.payment_action_done), onClick = onDismiss) },
+        title = { Text(stringResource(R.string.split_title)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item {
@@ -58,28 +59,38 @@ internal fun SplitBillDialog(
                         FilterChip(
                             selected = split.mode == SplitMode.EVENLY,
                             onClick = { onMode(SplitMode.EVENLY) },
-                            label = { Text("Evenly") },
+                            label = { Text(stringResource(R.string.split_mode_evenly)) },
                         )
                         FilterChip(
                             selected = split.mode == SplitMode.BY_ITEM,
                             onClick = { onMode(SplitMode.BY_ITEM) },
-                            label = { Text("By item") },
+                            label = { Text(stringResource(R.string.split_mode_by_item)) },
                         )
                     }
                 }
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Ways", Modifier.padding(end = 8.dp))
-                        PosOutlinedButton(text = "−", onClick = { onWays(split.ways - 1) })
-                        Text("  ${split.ways}  ", style = MaterialTheme.typography.titleMedium)
-                        PosOutlinedButton(text = "+", onClick = { onWays(split.ways + 1) })
+                        Text(stringResource(R.string.split_ways), Modifier.padding(end = 8.dp))
+                        PosOutlinedButton(
+                            text = stringResource(R.string.split_decrease),
+                            onClick = { onWays(split.ways - 1) },
+                        )
+                        Text(
+                            split.ways.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        )
+                        PosOutlinedButton(
+                            text = stringResource(R.string.split_increase),
+                            onClick = { onWays(split.ways + 1) },
+                        )
                     }
                 }
 
                 if (split.mode == SplitMode.BY_ITEM) {
                     item {
                         Text(
-                            "Tap a line to assign it to the next guest; unassigned lines are shared.",
+                            stringResource(R.string.split_assign_hint),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -94,7 +105,8 @@ internal fun SplitBillDialog(
                         ) {
                             Text(line.name, Modifier.weight(1f))
                             Text(
-                                guest?.let { "Guest ${it + 1}" } ?: "Shared",
+                                guest?.let { stringResource(R.string.split_guest, it + 1) }
+                                    ?: stringResource(R.string.split_shared),
                                 style = MaterialTheme.typography.labelMedium,
                             )
                             MoneyText(line.lineTotalMinor.toString(), Modifier.padding(start = 8.dp))
@@ -106,7 +118,7 @@ internal fun SplitBillDialog(
                 item {
                     // The whole point of the feature: the parts must add up to the bill.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Parts total", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.split_parts_total), fontWeight = FontWeight.Bold)
                         MoneyText(split.partsTotalMinor.toString())
                     }
                 }
@@ -128,12 +140,15 @@ internal fun SplitBillDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(part.label, Modifier.weight(1f))
+                        Text(stringResource(R.string.split_guest, part.guestIndex + 1), Modifier.weight(1f))
                         MoneyText(part.amountMinor.toString(), Modifier.padding(end = 8.dp))
                         if (part.paid) {
-                            Text("Paid", style = MaterialTheme.typography.labelMedium)
+                            Text(stringResource(R.string.split_part_paid), style = MaterialTheme.typography.labelMedium)
                         } else {
-                            PosOutlinedButton(text = "Take", onClick = { onPayPart(index, method) })
+                            PosOutlinedButton(
+                                text = stringResource(R.string.split_action_take_part),
+                                onClick = { onPayPart(index, method) },
+                            )
                         }
                     }
                 }

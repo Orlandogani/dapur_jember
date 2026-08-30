@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,6 +37,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leanecorps.dapurjember.core.designsystem.component.PosButton
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
 import com.leanecorps.dapurjember.core.domain.backup.BackupFile
+import com.leanecorps.dapurjember.core.domain.backup.RestoreFailure
+import com.leanecorps.dapurjember.feature.settings.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -52,24 +55,29 @@ fun BackupScreen(
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    LaunchedEffect(state.message) {
-        state.message?.let {
+    val messageText = state.message?.text()
+    LaunchedEffect(messageText) {
+        messageText?.let {
             snackbar.showSnackbar(it)
             viewModel.dismissMessage()
         }
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Backup & restore") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.backup_title)) }) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
+                PosOutlinedButton(
+                    text = stringResource(R.string.backup_action_back),
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f),
+                )
                 PosButton(
-                    text = "Back up now",
+                    text = stringResource(R.string.backup_action_now),
                     onClick = viewModel::startCreate,
                     enabled = !state.busy,
                     modifier = Modifier.weight(1f),
@@ -77,14 +85,13 @@ fun BackupScreen(
             }
 
             Text(
-                "Backups are encrypted with a passphrase you choose. Without that passphrase " +
-                    "a backup cannot be restored — write it down somewhere safe.",
+                stringResource(R.string.backup_help),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(vertical = 12.dp),
             )
 
             if (state.backups.isEmpty()) {
-                Text("No backups yet.", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.backup_empty), style = MaterialTheme.typography.bodyMedium)
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(state.backups, key = { it.path }) { file ->
@@ -124,15 +131,26 @@ private fun BackupRow(file: BackupFile, onRestore: () -> Unit, onShare: () -> Un
         Column(Modifier.padding(12.dp)) {
             Text(STAMP.format(Instant.ofEpochMilli(file.createdAt)), style = MaterialTheme.typography.titleMedium)
             Text(
-                "${file.sizeBytes / 1024} KB" + if (file.isAutomatic) " · automatic" else "",
+                stringResource(
+                    if (file.isAutomatic) R.string.backup_size_automatic else R.string.backup_size,
+                    file.sizeBytes / BYTES_PER_KB,
+                ),
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PosOutlinedButton(text = "Restore…", onClick = onRestore, enabled = enabled)
+                PosOutlinedButton(
+                    text = stringResource(R.string.backup_action_restore),
+                    onClick = onRestore,
+                    enabled = enabled,
+                )
                 // An automatic backup is encrypted with a device key, so it is useless
                 // elsewhere — only a passphrase-protected manual backup is worth sharing.
                 if (!file.isAutomatic) {
-                    PosOutlinedButton(text = "Share", onClick = onShare, enabled = enabled)
+                    PosOutlinedButton(
+                        text = stringResource(R.string.backup_action_share),
+                        onClick = onShare,
+                        enabled = enabled,
+                    )
                 }
             }
         }
@@ -148,15 +166,26 @@ private fun CreateBackupDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Create backup", onClick = onConfirm, enabled = draft.canCreate) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
-        title = { Text("New backup") },
+        confirmButton = {
+            PosButton(
+                text = stringResource(R.string.backup_action_create),
+                onClick = onConfirm,
+                enabled = draft.canCreate,
+            )
+        },
+        dismissButton = {
+            PosOutlinedButton(
+                text = stringResource(R.string.backup_action_cancel),
+                onClick = onDismiss,
+            )
+        },
+        title = { Text(stringResource(R.string.backup_create_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = draft.passphrase,
                     onValueChange = { v -> onChange { it.copy(passphrase = v) } },
-                    label = { Text("Passphrase (at least 8 characters)") },
+                    label = { Text(stringResource(R.string.backup_passphrase_label, MIN_PASSPHRASE)) },
                     isError = draft.tooShort,
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -164,20 +193,20 @@ private fun CreateBackupDialog(
                 OutlinedTextField(
                     value = draft.confirm,
                     onValueChange = { v -> onChange { it.copy(confirm = v) } },
-                    label = { Text("Repeat passphrase") },
+                    label = { Text(stringResource(R.string.backup_passphrase_repeat_label)) },
                     isError = draft.mismatch,
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                 )
                 if (draft.mismatch) {
                     Text(
-                        "The two passphrases do not match.",
+                        stringResource(R.string.backup_passphrase_mismatch),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 Text(
-                    "There is no way to recover a backup if you forget this passphrase.",
+                    stringResource(R.string.backup_passphrase_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -195,20 +224,30 @@ private fun RestoreDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Overwrite and restore", onClick = onConfirm, enabled = draft.canRestore) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
-        title = { Text("Restore backup") },
+        confirmButton = {
+            PosButton(
+                text = stringResource(R.string.backup_action_overwrite),
+                onClick = onConfirm,
+                enabled = draft.canRestore,
+            )
+        },
+        dismissButton = {
+            PosOutlinedButton(
+                text = stringResource(R.string.backup_action_cancel),
+                onClick = onDismiss,
+            )
+        },
+        title = { Text(stringResource(R.string.backup_restore_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "This replaces everything currently on this tablet — all orders, menu and " +
-                        "stock — with the contents of ${draft.file.name}. It cannot be undone.",
+                    stringResource(R.string.backup_restore_warning, draft.file.name),
                     color = MaterialTheme.colorScheme.error,
                 )
                 OutlinedTextField(
                     value = draft.passphrase,
                     onValueChange = { v -> onChange { it.copy(passphrase = v) } },
-                    label = { Text("Backup passphrase") },
+                    label = { Text(stringResource(R.string.backup_restore_passphrase_label)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                 )
@@ -217,7 +256,7 @@ private fun RestoreDialog(
                         checked = draft.acknowledged,
                         onCheckedChange = { v -> onChange { it.copy(acknowledged = v) } },
                     )
-                    Text("I understand the current data will be lost.")
+                    Text(stringResource(R.string.backup_restore_acknowledge))
                 }
             }
         },
@@ -230,9 +269,25 @@ private fun RestartRequiredDialog() {
     AlertDialog(
         onDismissRequest = {},
         confirmButton = {
-            PosButton(text = "Close app", onClick = { android.os.Process.killProcess(android.os.Process.myPid()) })
+            PosButton(
+                text = stringResource(R.string.backup_action_close_app),
+                onClick = { android.os.Process.killProcess(android.os.Process.myPid()) },
+            )
         },
-        title = { Text("Restore complete") },
-        text = { Text("Close and reopen DapurJember to finish restoring.") },
+        title = { Text(stringResource(R.string.backup_restart_title)) },
+        text = { Text(stringResource(R.string.backup_restart_body)) },
     )
 }
+
+/** Renders a [BackupMessage] for the snackbar; the wording lives in `strings.xml` (NFR8). */
+@Composable
+private fun BackupMessage.text(): String = when (this) {
+    is BackupMessage.Saved -> stringResource(R.string.backup_saved, fileName)
+    BackupMessage.CreateFailed -> stringResource(R.string.backup_create_failed)
+    is BackupMessage.RestoreFailed -> when (reason) {
+        RestoreFailure.UNREADABLE -> stringResource(R.string.backup_restore_unreadable)
+        RestoreFailure.PREVIOUS_DATA_KEPT -> stringResource(R.string.backup_restore_kept)
+    }
+}
+
+private const val BYTES_PER_KB = 1024

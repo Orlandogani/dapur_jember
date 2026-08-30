@@ -15,7 +15,15 @@ data class ModifierGroupsUiState(
     val editor: ModifierGroupDraft? = null,
 )
 
-data class ModifierGroupRowUi(val id: String, val name: String, val summary: String)
+/** A row on the groups list. Holds numbers, not a rendered sentence — see `summaryText`. */
+data class ModifierGroupRowUi(
+    val id: String,
+    val name: String,
+    val optionCount: Int,
+    val required: Boolean,
+    val minSelect: Int,
+    val maxSelect: Int,
+)
 
 data class ModifierGroupDraft(
     val id: String? = null,
@@ -52,9 +60,10 @@ data class ModifierRowDraft(
 internal fun ModifierGroupWithModifiers.toRowUi() = ModifierGroupRowUi(
     id = group.id,
     name = group.name,
-    summary = "${modifiers.size} options · " +
-        (if (group.required) "required" else "optional") +
-        " · choose ${group.minSelect}–${if (group.maxSelect == 0) "any" else group.maxSelect}",
+    optionCount = modifiers.size,
+    required = group.required,
+    minSelect = group.minSelect,
+    maxSelect = group.maxSelect,
 )
 
 internal fun ModifierGroupWithModifiers.toDraft(minorUnits: Int) = ModifierGroupDraft(

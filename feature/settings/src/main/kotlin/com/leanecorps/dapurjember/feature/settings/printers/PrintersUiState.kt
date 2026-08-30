@@ -8,15 +8,16 @@ data class PrintersUiState(
     val loading: Boolean = true,
     val printers: List<PrinterRowUi> = emptyList(),
     val editor: PrinterEditorUi? = null,
-    val message: String? = null,
+    /** Name of the printer a test page was just queued for; the wording lives in the UI. */
+    val testPageQueuedFor: String? = null,
 )
 
 data class PrinterRowUi(
     val id: String,
     val name: String,
-    val transport: String,
+    val link: PrinterLink,
     val address: String,
-    val roles: String,
+    val roles: Set<PrinterRole>,
 )
 
 data class PrinterEditorUi(
@@ -47,9 +48,9 @@ data class PrinterEditorUi(
 internal fun Printer.toRowUi() = PrinterRowUi(
     id = id,
     name = name,
-    transport = link.name,
+    link = link,
     address = address,
-    roles = roles.joinToString(", ") { it.name },
+    roles = roles,
 )
 
 internal fun Printer.toEditorUi() = PrinterEditorUi(

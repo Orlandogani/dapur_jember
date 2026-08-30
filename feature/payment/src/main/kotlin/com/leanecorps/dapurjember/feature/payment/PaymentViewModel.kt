@@ -57,7 +57,7 @@ data class SplitUiState(
     val partsTotalMinor: Long get() = parts.sumOf { it.amountMinor }
 }
 
-data class SplitPartUi(val label: String, val amountMinor: Long, val paid: Boolean = false)
+data class SplitPartUi(val guestIndex: Int, val amountMinor: Long, val paid: Boolean = false)
 
 @HiltViewModel
 class PaymentViewModel @Inject constructor(
@@ -175,7 +175,7 @@ class PaymentViewModel @Inject constructor(
                             .forEachIndexed { i, share -> perGuest[i] += share.minor }
                     }
                 }
-                val weights = (0 until state.ways).associate { "Guest ${it + 1}" to Money(perGuest[it]) }
+                val weights = (0 until state.ways).associateWith { Money(perGuest[it]) }
                 if (weights.values.all { it.minor <= 0L }) {
                     BillSplit.evenly(total, state.ways)
                 } else {
@@ -183,7 +183,7 @@ class PaymentViewModel @Inject constructor(
                 }
             }
         }
-        return state.copy(parts = parts.map { SplitPartUi(it.label, it.amount.minor) })
+        return state.copy(parts = parts.map { SplitPartUi(it.guestIndex, it.amount.minor) })
     }
 
     private inline fun MutableStateFlow<SplitUiState?>.update(transform: (SplitUiState) -> SplitUiState) {

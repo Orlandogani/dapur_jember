@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,14 +73,14 @@ internal fun ShiftScreen(
 @Composable
 private fun OpenShiftForm(onOpen: (Long) -> Unit) {
     var float by remember { mutableStateOf("") }
-    Text("Open shift", style = MaterialTheme.typography.titleLarge)
+    Text(stringResource(R.string.shift_open_title), style = MaterialTheme.typography.titleLarge)
     OutlinedTextField(
         value = float,
         onValueChange = { float = it.filter(Char::isDigit) },
-        label = { Text("Opening float (minor units)") },
+        label = { Text(stringResource(R.string.shift_opening_float_label)) },
     )
     PosButton(
-        text = "Open",
+        text = stringResource(R.string.shift_action_open),
         onClick = { onOpen(float.toLongOrNull() ?: 0L) },
         enabled = float.isNotEmpty(),
     )
@@ -91,11 +93,15 @@ private fun CloseShiftForm(
     onConfirmClose: () -> Unit,
 ) {
     var counted by remember { mutableStateOf("") }
-    Text("Close shift — count the drawer", style = MaterialTheme.typography.titleLarge)
+    Text(stringResource(R.string.shift_close_title), style = MaterialTheme.typography.titleLarge)
 
     if (state.blockedByOrders > 0) {
         Text(
-            "${state.blockedByOrders} unpaid order(s) — settle them first (FR-S5).",
+            pluralStringResource(
+                R.plurals.shift_blocked_by_orders,
+                state.blockedByOrders,
+                state.blockedByOrders,
+            ),
             color = MaterialTheme.colorScheme.error,
         )
     }
@@ -105,18 +111,18 @@ private fun CloseShiftForm(
         OutlinedTextField(
             value = counted,
             onValueChange = { counted = it.filter(Char::isDigit) },
-            label = { Text("Counted cash (minor units)") },
+            label = { Text(stringResource(R.string.shift_counted_cash_label)) },
         )
         PosButton(
-            text = "Reveal Z-report",
+            text = stringResource(R.string.shift_action_reveal_z_report),
             onClick = { onPreviewClose(counted.toLongOrNull() ?: 0L) },
             enabled = counted.isNotEmpty(),
         )
     } else {
-        ZRow("Counted", preview.countedCash.minor)
-        ZRow("Expected", preview.expectedCash.minor)
-        ZRow("Variance", preview.variance.minor, emphasise = true)
-        PosButton(text = "Confirm close", onClick = onConfirmClose)
+        ZRow(stringResource(R.string.shift_z_counted), preview.countedCash.minor)
+        ZRow(stringResource(R.string.shift_z_expected), preview.expectedCash.minor)
+        ZRow(stringResource(R.string.shift_z_variance), preview.variance.minor, emphasise = true)
+        PosButton(text = stringResource(R.string.shift_action_confirm_close), onClick = onConfirmClose)
     }
 }
 

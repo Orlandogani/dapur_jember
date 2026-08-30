@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -68,12 +69,14 @@ internal fun MenuScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Menu") },
+                title = { Text(stringResource(R.string.menu_title)) },
                 actions = {
-                    TextButton(onClick = onModifierGroups) { Text("Modifiers") }
-                    TextButton(onClick = onImportCsv) { Text("Import CSV") }
-                    TextButton(onClick = { showCategoryDialog = true }) { Text("Add category") }
-                    TextButton(onClick = { onEditItem(null) }) { Text("Add item") }
+                    TextButton(onClick = onModifierGroups) { Text(stringResource(R.string.menu_action_modifiers)) }
+                    TextButton(onClick = onImportCsv) { Text(stringResource(R.string.menu_action_import_csv)) }
+                    TextButton(onClick = { showCategoryDialog = true }) {
+                        Text(stringResource(R.string.menu_action_add_category))
+                    }
+                    TextButton(onClick = { onEditItem(null) }) { Text(stringResource(R.string.menu_action_add_item)) }
                 },
             )
         },
@@ -83,7 +86,7 @@ internal fun MenuScreen(
                 state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
 
                 state.isEmpty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("No menu items yet", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.menu_empty), style = MaterialTheme.typography.bodyLarge)
                 }
 
                 else -> LazyColumn(Modifier.fillMaxSize()) {
@@ -144,14 +147,20 @@ private fun AddCategoryDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Add", onClick = { onConfirm(name) }, enabled = name.isNotBlank()) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
-        title = { Text("New category") },
+        confirmButton = {
+            PosButton(
+                text = stringResource(R.string.menu_action_add),
+                onClick = { onConfirm(name) },
+                enabled = name.isNotBlank(),
+            )
+        },
+        dismissButton = { PosOutlinedButton(text = stringResource(R.string.menu_action_cancel), onClick = onDismiss) },
+        title = { Text(stringResource(R.string.menu_category_dialog_title)) },
         text = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Category name") },
+                label = { Text(stringResource(R.string.menu_category_name_label)) },
                 singleLine = true,
             )
         },

@@ -1,12 +1,14 @@
 package com.leanecorps.dapurjember.core.data.backup
 
 import android.content.Context
+import android.util.Log
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.leanecorps.dapurjember.core.common.crypto.BackupCrypto
 import com.leanecorps.dapurjember.core.common.time.TimeProvider
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.domain.backup.BackupFile
 import com.leanecorps.dapurjember.core.domain.backup.BackupRepository
+import com.leanecorps.dapurjember.core.domain.backup.RestoreFailure
 import com.leanecorps.dapurjember.core.domain.backup.RestoreResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +23,7 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val TAG = "BackupRepository"
 private const val BACKUP_DIR = "backups"
 private const val BACKUP_EXTENSION = ".djbk"
 
@@ -86,8 +89,8 @@ class BackupRepositoryImpl @Inject constructor(
     }
 
     override suspend fun restore(file: BackupFile, passphrase: CharArray): RestoreResult {
-        val plaintext = readBackup(file, passphrase).getOrElse { e ->
-            return RestoreResult.Failed(e.message ?: "The backup could not be read.")
+        val plaintext = readBackup(file, passphrase).getOrElse {
+            return RestoreResult.Failed(RestoreFailure.UNREADABLE)
         }
         return swapDatabase(plaintext)
     }
@@ -114,7 +117,10 @@ class BackupRepositoryImpl @Inject constructor(
             RestoreResult.RestartRequired
         } catch (e: IOException) {
             runCatching { rollback.copyTo(dbFile, overwrite = true) }
-            RestoreResult.Failed("Restore failed and the previous data was kept: ${e.message}")
+            // The user only ever sees "your data was kept"; the cause goes to logcat so a
+            // failed restore on a pilot device is still diagnosable.
+            Log.e(TAG, "Restore failed; rolled back to the pre-restore database", e)
+            RestoreResult.Failed(RestoreFailure.PREVIOUS_DATA_KEPT)
         }
     }
 

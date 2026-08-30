@@ -2,6 +2,7 @@
 
 package com.leanecorps.dapurjember.feature.reports
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +34,8 @@ import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.common.money.formatMoney
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
 import com.leanecorps.dapurjember.core.designsystem.component.SecureScreen
+import com.leanecorps.dapurjember.core.domain.order.PaymentMethod
+import com.leanecorps.dapurjember.core.domain.reports.AuditKind
 import com.leanecorps.dapurjember.core.domain.reports.DailySummary
 import java.util.Locale
 
@@ -55,22 +59,28 @@ fun ReportsScreen(
         viewModel.csvExports.collect { export -> shareCsv(context, export) }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Daily summary") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.reports_title)) }) }) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PosOutlinedButton(text = "‹", onClick = { viewModel.shiftDay(-1) })
+                    PosOutlinedButton(
+                        text = stringResource(R.string.reports_action_previous_day),
+                        onClick = { viewModel.shiftDay(-1) },
+                    )
                     OutlinedTextField(
                         value = state.businessDay,
                         onValueChange = viewModel::setBusinessDay,
-                        label = { Text("Business day (YYYY-MM-DD)") },
+                        label = { Text(stringResource(R.string.reports_business_day_label)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    PosOutlinedButton(text = "›", onClick = { viewModel.shiftDay(1) })
+                    PosOutlinedButton(
+                        text = stringResource(R.string.reports_action_next_day),
+                        onClick = { viewModel.shiftDay(1) },
+                    )
                 }
             }
 
@@ -86,39 +96,79 @@ fun ReportsScreen(
                 item { SummaryCard(summary, money) }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
                         PosOutlinedButton(
-                            text = "Export CSV",
+                            text = stringResource(R.string.reports_action_back),
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f),
+                        )
+                        PosOutlinedButton(
+                            text = stringResource(R.string.reports_action_export_csv),
                             onClick = viewModel::exportCsv,
                             modifier = Modifier.weight(1f),
                         )
                     }
                 }
 
-                item { Text("Sales by item", style = MaterialTheme.typography.titleMedium) }
+                item {
+                    Text(
+                        stringResource(R.string.reports_sales_by_item),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
                 if (state.salesByItem.isEmpty()) {
-                    item { Text("Nothing sold on this day.", style = MaterialTheme.typography.bodyMedium) }
+                    item {
+                        Text(
+                            stringResource(R.string.reports_sales_by_item_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
                 items(state.salesByItem, key = { "item_${it.name}" }) { row ->
-                    val margin = row.marginPercent?.let { "  ·  ${formatPercent(it)} margin" }.orEmpty()
-                    KeyValueRow(label = "${row.quantity}× ${row.name}", value = money(row.gross) + margin)
+                    val gross = money(row.gross)
+                    KeyValueRow(
+                        label = stringResource(R.string.reports_qty_name, row.quantity, row.name),
+                        value = row.marginPercent
+                            ?.let { stringResource(R.string.reports_margin_suffix, gross, formatPercent(it)) }
+                            ?: gross,
+                    )
                 }
 
                 if (state.salesByCategory.isNotEmpty()) {
-                    item { Text("Sales by category", style = MaterialTheme.typography.titleMedium) }
+                    item {
+                        Text(
+                            stringResource(R.string.reports_sales_by_category),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
                     items(state.salesByCategory, key = { "cat_${it.name}" }) { row ->
-                        KeyValueRow("${row.quantity}× ${row.name}", money(row.gross))
+                        KeyValueRow(stringResource(R.string.reports_qty_name, row.quantity, row.name), money(row.gross))
                     }
                 }
 
-                item { Text("Voids & discounts", style = MaterialTheme.typography.titleMedium) }
+                item { Text(stringResource(R.string.reports_audit), style = MaterialTheme.typography.titleMedium) }
                 if (state.audit.isEmpty()) {
-                    item { Text("No voids or discounts today.", style = MaterialTheme.typography.bodyMedium) }
+                    item {
+                        Text(
+                            stringResource(R.string.reports_audit_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
                 items(state.audit, key = { "audit_${it.kind}_${it.at}_${it.description}" }) { entry ->
+                    val kind = stringResource(entry.kind.labelRes())
+                    val reason = entry.reason
                     KeyValueRow(
-                        label = "${entry.kind.name} · ${entry.description} · ${entry.staffName}" +
-                            (entry.reason?.let { " ($it)" } ?: ""),
+                        label = if (reason == null) {
+                            stringResource(R.string.reports_audit_row, kind, entry.description, entry.staffName)
+                        } else {
+                            stringResource(
+                                R.string.reports_audit_row_reason,
+                                kind,
+                                entry.description,
+                                entry.staffName,
+                                reason,
+                            )
+                        },
                         value = money(entry.amount),
                     )
                 }
@@ -131,45 +181,56 @@ fun ReportsScreen(
 private fun SummaryCard(summary: DailySummary, money: (Money) -> String) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            KeyValueRow("Gross revenue", money(summary.grossRevenue), emphasise = true)
-            KeyValueRow("Paid orders", summary.orderCount.toString())
-            KeyValueRow("Covers", summary.covers.toString())
-            KeyValueRow("Average ticket", money(summary.averageTicket))
+            KeyValueRow(stringResource(R.string.reports_gross_revenue), money(summary.grossRevenue), emphasise = true)
+            KeyValueRow(stringResource(R.string.reports_paid_orders), summary.orderCount.toString())
+            KeyValueRow(stringResource(R.string.reports_covers), summary.covers.toString())
+            KeyValueRow(stringResource(R.string.reports_average_ticket), money(summary.averageTicket))
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            KeyValueRow("COGS", money(summary.cogs))
-            KeyValueRow("Gross profit", money(summary.grossProfit), emphasise = true)
-            KeyValueRow("Gross margin", summary.grossMarginPercent?.let(::formatPercent) ?: "—")
+            KeyValueRow(stringResource(R.string.reports_cogs), money(summary.cogs))
+            KeyValueRow(stringResource(R.string.reports_gross_profit), money(summary.grossProfit), emphasise = true)
+            KeyValueRow(
+                stringResource(R.string.reports_gross_margin),
+                summary.grossMarginPercent?.let(::formatPercent) ?: stringResource(R.string.reports_value_none),
+            )
             if (summary.cogs.isZero && summary.orderCount > 0) {
                 Text(
-                    "No recipe costs recorded — add recipes to menu items to see food cost.",
+                    stringResource(R.string.reports_no_recipe_costs),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            Text("Payment mix", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.reports_payment_mix), style = MaterialTheme.typography.labelLarge)
             if (summary.paymentMix.isEmpty()) {
-                Text("No payments recorded.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.reports_no_payments), style = MaterialTheme.typography.bodySmall)
             }
-            summary.paymentMix.forEach { row -> KeyValueRow(row.method.name, money(row.amount)) }
+            summary.paymentMix.forEach { row ->
+                KeyValueRow(stringResource(row.method.labelRes()), money(row.amount))
+            }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            KeyValueRow("Discounts", "${summary.discountCount} · ${money(summary.discountTotal)}")
-            KeyValueRow("Voided orders / lines", "${summary.voidedOrders} / ${summary.voidedLines}")
+            KeyValueRow(
+                stringResource(R.string.reports_discounts),
+                stringResource(R.string.reports_discounts_value, summary.discountCount, money(summary.discountTotal)),
+            )
+            KeyValueRow(
+                stringResource(R.string.reports_voided),
+                stringResource(R.string.reports_voided_value, summary.voidedOrders, summary.voidedLines),
+            )
         }
     }
 }
 
 @Composable
 private fun PermissionDenied(onBack: () -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Daily summary") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.reports_title)) }) }) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Reports are available to managers and owners.",
+                stringResource(R.string.reports_no_permission),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            PosOutlinedButton(text = "Back", onClick = onBack)
+            PosOutlinedButton(text = stringResource(R.string.reports_action_back), onClick = onBack)
         }
     }
 }
@@ -187,4 +248,19 @@ private fun KeyValueRow(label: String, value: String, emphasise: Boolean = false
             style = if (emphasise) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
         )
     }
+}
+
+/** Display labels. The domain stores stable enum names; translation belongs to the UI (NFR8). */
+@StringRes
+private fun AuditKind.labelRes(): Int = when (this) {
+    AuditKind.VOID -> R.string.audit_kind_void
+    AuditKind.DISCOUNT -> R.string.audit_kind_discount
+}
+
+@StringRes
+private fun PaymentMethod.labelRes(): Int = when (this) {
+    PaymentMethod.CASH -> R.string.payment_method_cash
+    PaymentMethod.CARD -> R.string.payment_method_card
+    PaymentMethod.EWALLET -> R.string.payment_method_ewallet
+    PaymentMethod.OTHER -> R.string.payment_method_other
 }

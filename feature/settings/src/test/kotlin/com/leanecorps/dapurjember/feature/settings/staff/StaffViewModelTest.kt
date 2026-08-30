@@ -95,10 +95,7 @@ class StaffViewModelTest {
         advanceUntilIdle()
 
         assertTrue(auth.observeAllStaff().first().first { it.id == "me" }.active)
-        assertEquals(
-            "You cannot deactivate the account you are signed in with.",
-            viewModel.uiState.value.message,
-        )
+        assertEquals(StaffMessage.CANNOT_DEACTIVATE_SELF, viewModel.uiState.value.message)
     }
 
     @Test

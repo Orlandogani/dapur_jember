@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="floor_title">Floor</string>
+    <string name="floor_action_menu">Menu</string>
+    <string name="floor_action_reports">Reports</string>
+    <string name="floor_action_inventory">Inventory</string>
+    <!-- Inventory button with the FR-I7 low-stock count. -->
+    <string name="floor_action_inventory_low_stock">Inventory (%1$d)</string>
+    <string name="floor_action_settings">Settings</string>
+    <string name="floor_empty">No tables configured yet</string>
+    <string name="floor_seats">%1$d seats</string>
+    <string name="floor_backup_reminder">It has been a while since your last backup.</string>
+    <string name="floor_backup_reminder_action">Back up</string>
+    <string name="floor_backup_reminder_dismiss">Later</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_title_set_owner_pin">Set the owner PIN</string>
+    <string name="auth_title_enter_pin">Enter PIN</string>
+    <string name="auth_action_create_and_sign_in">Create &amp; sign in</string>
+    <string name="auth_action_sign_in">Sign in</string>
+    <string name="auth_action_delete_digit">Delete</string>
+</resources>

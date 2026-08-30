@@ -2,6 +2,7 @@ package com.leanecorps.dapurjember.core.testing.repository
 
 import com.leanecorps.dapurjember.core.domain.backup.BackupFile
 import com.leanecorps.dapurjember.core.domain.backup.BackupRepository
+import com.leanecorps.dapurjember.core.domain.backup.RestoreFailure
 import com.leanecorps.dapurjember.core.domain.backup.RestoreResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,7 +47,7 @@ class FakeBackupRepository(
         if (String(passphrase) == restorePassphrase) {
             RestoreResult.RestartRequired
         } else {
-            RestoreResult.Failed("Wrong passphrase, or the backup file is damaged.")
+            RestoreResult.Failed(RestoreFailure.UNREADABLE)
         }
 
     override suspend fun pruneOldBackups(keep: Int) =

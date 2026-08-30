@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="payment_total">Total</string>
+    <string name="payment_paid">Paid</string>
+    <string name="payment_balance">Balance</string>
+    <string name="payment_change">Change</string>
+    <string name="payment_paid_in_full">Paid in full</string>
+    <string name="payment_action_reprint">Reprint receipt</string>
+    <string name="payment_action_done">Done</string>
+    <string name="payment_amount_label">Amount (minor units)</string>
+    <string name="payment_tendered_label">Cash tendered</string>
+    <string name="payment_action_split">Split bill</string>
+    <string name="payment_action_take">Take payment</string>
+
+    <string name="split_title">Split bill</string>
+    <string name="split_mode_evenly">Evenly</string>
+    <string name="split_mode_by_item">By item</string>
+    <string name="split_ways">Ways</string>
+    <string name="split_decrease">−</string>
+    <string name="split_increase">+</string>
+    <string name="split_assign_hint">Tap a line to assign it to the next guest; unassigned lines are shared.</string>
+    <string name="split_guest">Guest %1$d</string>
+    <string name="split_shared">Shared</string>
+    <string name="split_parts_total">Parts total</string>
+    <string name="split_part_paid">Paid</string>
+    <string name="split_action_take_part">Take</string>
+</resources>

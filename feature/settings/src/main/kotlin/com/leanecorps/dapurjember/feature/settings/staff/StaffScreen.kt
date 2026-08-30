@@ -2,6 +2,7 @@
 
 package com.leanecorps.dapurjember.feature.settings.staff
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -38,6 +40,7 @@ import com.leanecorps.dapurjember.core.designsystem.component.PosButton
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
 import com.leanecorps.dapurjember.core.domain.auth.Staff
 import com.leanecorps.dapurjember.core.domain.auth.StaffRole
+import com.leanecorps.dapurjember.feature.settings.R
 
 @Composable
 fun StaffScreen(
@@ -47,22 +50,27 @@ fun StaffScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.message) {
-        state.message?.let {
+    val messageText = state.message?.let { stringResource(it.labelRes()) }
+    LaunchedEffect(messageText) {
+        messageText?.let {
             snackbar.showSnackbar(it)
             viewModel.dismissMessage()
         }
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Staff") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.staff_title)) }) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
+                PosOutlinedButton(
+                    text = stringResource(R.string.staff_action_back),
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f),
+                )
                 PosButton(
-                    text = "Add staff",
+                    text = stringResource(R.string.staff_action_add),
                     onClick = viewModel::startAdd,
                     enabled = state.canManage,
                     modifier = Modifier.weight(1f),
@@ -71,7 +79,7 @@ fun StaffScreen(
 
             if (!state.canManage && !state.loading) {
                 Text(
-                    "Only an owner can add or change staff.",
+                    stringResource(R.string.staff_no_permission),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(vertical = 12.dp),
@@ -116,11 +124,13 @@ private fun StaffRow(
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Text(
-                staff.name + if (isSelf) "  (you)" else "",
+                if (isSelf) stringResource(R.string.staff_name_you, staff.name) else staff.name,
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                staff.role.name + if (staff.active) "" else " · deactivated",
+                stringResource(staff.role.labelRes()).let {
+                    if (staff.active) it else stringResource(R.string.staff_role_line_deactivated, it)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = if (staff.active) {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -130,9 +140,11 @@ private fun StaffRow(
             )
             if (canManage) {
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PosOutlinedButton(text = "Edit", onClick = onEdit)
+                    PosOutlinedButton(text = stringResource(R.string.staff_action_edit), onClick = onEdit)
                     PosOutlinedButton(
-                        text = if (staff.active) "Deactivate" else "Reactivate",
+                        text = stringResource(
+                            if (staff.active) R.string.staff_action_deactivate else R.string.staff_action_reactivate,
+                        ),
                         onClick = onToggleActive,
                     )
                 }
@@ -150,31 +162,47 @@ private fun StaffEditorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Save", onClick = onSave, enabled = draft.canSave) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
-        title = { Text(if (draft.isNew) "New staff member" else "Edit ${draft.name}") },
+        confirmButton = {
+            PosButton(text = stringResource(R.string.staff_action_save), onClick = onSave, enabled = draft.canSave)
+        },
+        dismissButton = { PosOutlinedButton(text = stringResource(R.string.staff_action_cancel), onClick = onDismiss) },
+        title = {
+            Text(
+                if (draft.isNew) {
+                    stringResource(R.string.staff_editor_new)
+                } else {
+                    stringResource(R.string.staff_editor_edit, draft.name)
+                },
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = draft.name,
                     onValueChange = { v -> onChange { it.copy(name = v) } },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.staff_name_label)) },
                     singleLine = true,
                 )
-                Text("Role", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.staff_role_heading), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StaffRole.entries.forEach { role ->
                         FilterChip(
                             selected = role == draft.role,
                             onClick = { onChange { it.copy(role = role) } },
-                            label = { Text(role.name) },
+                            label = { Text(stringResource(role.labelRes())) },
                         )
                     }
                 }
                 OutlinedTextField(
                     value = draft.pin,
                     onValueChange = { v -> onChange { it.copy(pin = v.filter(Char::isDigit).take(6)) } },
-                    label = { Text(if (draft.isNew) "PIN (4–6 digits)" else "New PIN (leave blank to keep)") },
+                    label = {
+                        Text(
+                            stringResource(
+                                if (draft.isNew) R.string.staff_pin_label_new else R.string.staff_pin_label_edit,
+                            ),
+                        )
+                    },
                     isError = !draft.pinValid,
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -183,4 +211,18 @@ private fun StaffEditorDialog(
             }
         },
     )
+}
+
+/** Display labels; the persisted role stays the enum name so it survives translation (NFR8). */
+@StringRes
+private fun StaffRole.labelRes(): Int = when (this) {
+    StaffRole.OWNER -> R.string.staff_role_owner
+    StaffRole.MANAGER -> R.string.staff_role_manager
+    StaffRole.CASHIER -> R.string.staff_role_cashier
+    StaffRole.WAITER -> R.string.staff_role_waiter
+}
+
+@StringRes
+private fun StaffMessage.labelRes(): Int = when (this) {
+    StaffMessage.CANNOT_DEACTIVATE_SELF -> R.string.staff_cannot_deactivate_self
 }

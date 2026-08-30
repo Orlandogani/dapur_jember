@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Setup wizard (FR-A4) -->
+    <string name="setup_title">Set up %1$s</string>
+    <string name="setup_title_fallback">your restaurant</string>
+    <string name="setup_step">Step %1$d of %2$d</string>
+    <string name="setup_action_back">Back</string>
+    <string name="setup_action_next">Next</string>
+    <string name="setup_action_finish">Finish setup</string>
+    <string name="setup_action_saving">Saving…</string>
+    <string name="setup_restaurant_name_label">Restaurant name</string>
+    <string name="setup_currency_heading">Currency</string>
+    <string name="setup_timezone_label">Timezone ID</string>
+    <string name="setup_price_hint">Prices shown in %1$s</string>
+    <string name="setup_tax_rate_label">Tax rate (%%)</string>
+    <string name="setup_tax_inclusive">Tax is included in menu prices</string>
+    <string name="setup_service_charge_label">Service charge (%%)</string>
+    <string name="setup_service_charge_taxable">Service charge is taxable</string>
+    <string name="setup_owner_name_label">Owner name</string>
+    <string name="setup_owner_pin_label">Owner PIN (%1$d–%2$d digits)</string>
+    <string name="setup_pin_warning">There is no way to recover this PIN without a backup file. Write it down.</string>
+
+    <!-- Printers (S30) -->
+    <string name="printers_title">Printers</string>
+    <string name="printers_action_back">Back</string>
+    <string name="printers_action_backup">Backup</string>
+    <string name="printers_action_staff">Staff</string>
+    <string name="printers_action_add">Add printer</string>
+    <string name="printers_empty">No printers yet. Add one so tickets and receipts have somewhere to go.</string>
+    <string name="printers_connection_summary">%1$s · %2$s</string>
+    <string name="printers_action_edit">Edit</string>
+    <string name="printers_action_test">Test print</string>
+    <string name="printers_action_remove">Remove</string>
+    <string name="printers_test_queued">Test page queued for %1$s</string>
+    <string name="printers_editor_new">Add printer</string>
+    <string name="printers_editor_edit">Edit printer</string>
+    <string name="printers_action_save">Save</string>
+    <string name="printers_action_cancel">Cancel</string>
+    <string name="printers_name_label">Name</string>
+    <string name="printers_connection_heading">Connection</string>
+    <string name="printers_paper_width_heading">Paper width</string>
+    <string name="printers_codepage_label">Codepage (ESC t)</string>
+    <string name="printers_roles_heading">Roles</string>
+    <string name="printers_address_tcp">Host or host:port</string>
+    <string name="printers_address_bluetooth">Bluetooth MAC address</string>
+    <string name="printers_address_usb">USB device name</string>
+    <string name="printer_link_tcp">Network</string>
+    <string name="printer_link_bluetooth">Bluetooth</string>
+    <string name="printer_link_usb">USB</string>
+    <string name="printer_role_kitchen">Kitchen</string>
+    <string name="printer_role_bar">Bar</string>
+    <string name="printer_role_receipt">Receipt</string>
+
+    <!-- Backup &amp; restore (FR-D1–D4) -->
+    <string name="backup_title">Backup &amp; restore</string>
+    <string name="backup_action_back">Back</string>
+    <string name="backup_action_now">Back up now</string>
+    <string name="backup_help">Backups are encrypted with a passphrase you choose. Without that passphrase a backup cannot be restored — write it down somewhere safe.</string>
+    <string name="backup_empty">No backups yet.</string>
+    <string name="backup_size">%1$d KB</string>
+    <string name="backup_size_automatic">%1$d KB · automatic</string>
+    <string name="backup_action_restore">Restore…</string>
+    <string name="backup_action_share">Share</string>
+    <string name="backup_saved">Backup saved: %1$s</string>
+    <string name="backup_create_failed">Backup failed. Nothing was changed.</string>
+    <string name="backup_restore_unreadable">Wrong passphrase, or the backup file is damaged.</string>
+    <string name="backup_restore_kept">Restore failed. The data already on this tablet was kept.</string>
+    <string name="backup_create_title">New backup</string>
+    <string name="backup_action_create">Create backup</string>
+    <string name="backup_action_cancel">Cancel</string>
+    <string name="backup_passphrase_label">Passphrase (at least %1$d characters)</string>
+    <string name="backup_passphrase_repeat_label">Repeat passphrase</string>
+    <string name="backup_passphrase_mismatch">The two passphrases do not match.</string>
+    <string name="backup_passphrase_warning">There is no way to recover a backup if you forget this passphrase.</string>
+    <string name="backup_restore_title">Restore backup</string>
+    <string name="backup_action_overwrite">Overwrite and restore</string>
+    <string name="backup_restore_warning">This replaces everything currently on this tablet — all orders, menu and stock — with the contents of %1$s. It cannot be undone.</string>
+    <string name="backup_restore_passphrase_label">Backup passphrase</string>
+    <string name="backup_restore_acknowledge">I understand the current data will be lost.</string>
+    <string name="backup_restart_title">Restore complete</string>
+    <string name="backup_restart_body">Close and reopen DapurJember to finish restoring.</string>
+    <string name="backup_action_close_app">Close app</string>
+
+    <!-- Staff (S29) -->
+    <string name="staff_title">Staff</string>
+    <string name="staff_action_back">Back</string>
+    <string name="staff_action_add">Add staff</string>
+    <string name="staff_no_permission">Only an owner can add or change staff.</string>
+    <string name="staff_name_you">%1$s  (you)</string>
+    <string name="staff_role_line_deactivated">%1$s · deactivated</string>
+    <string name="staff_action_edit">Edit</string>
+    <string name="staff_action_deactivate">Deactivate</string>
+    <string name="staff_action_reactivate">Reactivate</string>
+    <string name="staff_cannot_deactivate_self">You cannot deactivate the account you are signed in with.</string>
+    <string name="staff_editor_new">New staff member</string>
+    <string name="staff_editor_edit">Edit %1$s</string>
+    <string name="staff_action_save">Save</string>
+    <string name="staff_action_cancel">Cancel</string>
+    <string name="staff_name_label">Name</string>
+    <string name="staff_role_heading">Role</string>
+    <string name="staff_pin_label_new">PIN (4–6 digits)</string>
+    <string name="staff_pin_label_edit">New PIN (leave blank to keep)</string>
+    <string name="staff_role_owner">Owner</string>
+    <string name="staff_role_manager">Manager</string>
+    <string name="staff_role_cashier">Cashier</string>
+    <string name="staff_role_waiter">Waiter</string>
+</resources>

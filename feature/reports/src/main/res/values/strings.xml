@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reports_title">Daily summary</string>
+    <string name="reports_action_previous_day">‹</string>
+    <string name="reports_action_next_day">›</string>
+    <string name="reports_business_day_label">Business day (YYYY-MM-DD)</string>
+    <string name="reports_action_back">Back</string>
+    <string name="reports_action_export_csv">Export CSV</string>
+    <string name="reports_no_permission">Reports are available to managers and owners.</string>
+
+    <string name="reports_gross_revenue">Gross revenue</string>
+    <string name="reports_paid_orders">Paid orders</string>
+    <string name="reports_covers">Covers</string>
+    <string name="reports_average_ticket">Average ticket</string>
+    <string name="reports_cogs">COGS</string>
+    <string name="reports_gross_profit">Gross profit</string>
+    <string name="reports_gross_margin">Gross margin</string>
+    <string name="reports_value_none">—</string>
+    <string name="reports_no_recipe_costs">No recipe costs recorded — add recipes to menu items to see food cost.</string>
+    <string name="reports_payment_mix">Payment mix</string>
+    <string name="reports_no_payments">No payments recorded.</string>
+    <string name="reports_discounts">Discounts</string>
+    <string name="reports_discounts_value">%1$d · %2$s</string>
+    <string name="reports_voided">Voided orders / lines</string>
+    <string name="reports_voided_value">%1$d / %2$d</string>
+
+    <string name="reports_sales_by_item">Sales by item</string>
+    <string name="reports_sales_by_item_empty">Nothing sold on this day.</string>
+    <string name="reports_sales_by_category">Sales by category</string>
+    <string name="reports_qty_name">%1$d× %2$s</string>
+    <string name="reports_margin_suffix">%1$s  ·  %2$s margin</string>
+    <string name="reports_audit">Voids &amp; discounts</string>
+    <string name="reports_audit_empty">No voids or discounts today.</string>
+    <string name="reports_audit_row">%1$s · %2$s · %3$s</string>
+    <string name="reports_audit_row_reason">%1$s · %2$s · %3$s (%4$s)</string>
+
+    <string name="audit_kind_void">Void</string>
+    <string name="audit_kind_discount">Discount</string>
+
+    <string name="payment_method_cash">Cash</string>
+    <string name="payment_method_card">Card</string>
+    <string name="payment_method_ewallet">E-wallet</string>
+    <string name="payment_method_other">Other</string>
+</resources>

@@ -2,6 +2,7 @@
 
 package com.leanecorps.dapurjember.feature.inventory
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -25,12 +26,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leanecorps.dapurjember.core.designsystem.component.PosButton
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
+import com.leanecorps.dapurjember.core.domain.inventory.StockReason
 
 @Composable
 fun InventoryScreen(
@@ -39,12 +42,16 @@ fun InventoryScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Inventory") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.inventory_title)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
+                PosOutlinedButton(
+                    text = stringResource(R.string.inventory_action_back),
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f),
+                )
                 PosButton(
-                    text = "Add ingredient",
+                    text = stringResource(R.string.inventory_action_add),
                     onClick = viewModel::startAdd,
                     enabled = state.canAdjust,
                     modifier = Modifier.weight(1f),
@@ -52,7 +59,7 @@ fun InventoryScreen(
             }
             if (!state.canAdjust && !state.loading) {
                 Text(
-                    "Stock changes are available to managers and owners.",
+                    stringResource(R.string.inventory_no_permission),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 12.dp),
@@ -61,7 +68,7 @@ fun InventoryScreen(
 
             if (state.ingredients.isEmpty() && !state.loading) {
                 Text(
-                    "No ingredients yet.",
+                    stringResource(R.string.inventory_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 24.dp),
                 )
@@ -72,7 +79,11 @@ fun InventoryScreen(
                         Column(Modifier.padding(12.dp)) {
                             Text(row.name, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                if (row.lowStock) "${row.stockLabel}  · LOW" else row.stockLabel,
+                                if (row.lowStock) {
+                                    stringResource(R.string.inventory_stock_low, row.stockLabel)
+                                } else {
+                                    row.stockLabel
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (row.lowStock) {
                                     MaterialTheme.colorScheme.error
@@ -82,12 +93,12 @@ fun InventoryScreen(
                             )
                             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 PosOutlinedButton(
-                                    text = "Edit",
+                                    text = stringResource(R.string.inventory_action_edit),
                                     onClick = { viewModel.startEdit(row.id) },
                                     enabled = state.canAdjust,
                                 )
                                 PosOutlinedButton(
-                                    text = "Adjust",
+                                    text = stringResource(R.string.inventory_action_adjust),
                                     onClick = { viewModel.startAdjust(row.id) },
                                     enabled = state.canAdjust,
                                 )
@@ -128,24 +139,32 @@ private fun IngredientEditorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Save", onClick = onSave, enabled = editor.canSave) },
+        confirmButton = {
+            PosButton(text = stringResource(R.string.inventory_action_save), onClick = onSave, enabled = editor.canSave)
+        },
         dismissButton = {
             if (editor.isNew) {
-                PosOutlinedButton(text = "Cancel", onClick = onDismiss)
+                PosOutlinedButton(text = stringResource(R.string.inventory_action_cancel), onClick = onDismiss)
             } else {
-                PosOutlinedButton(text = "Delete", onClick = onDelete)
+                PosOutlinedButton(text = stringResource(R.string.inventory_action_delete), onClick = onDelete)
             }
         },
-        title = { Text(if (editor.isNew) "New ingredient" else "Edit ingredient") },
+        title = {
+            Text(
+                stringResource(
+                    if (editor.isNew) R.string.inventory_editor_new else R.string.inventory_editor_edit,
+                ),
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = editor.name,
                     onValueChange = { v -> onChange { it.copy(name = v) } },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.inventory_name_label)) },
                     singleLine = true,
                 )
-                Text("Base unit", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.inventory_base_unit_heading), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     InventoryViewModel.BASE_UNITS.forEach { unit ->
                         FilterChip(
@@ -158,13 +177,13 @@ private fun IngredientEditorDialog(
                 OutlinedTextField(
                     value = editor.purchaseUnit,
                     onValueChange = { v -> onChange { it.copy(purchaseUnit = v) } },
-                    label = { Text("Purchase unit (e.g. sack, box)") },
+                    label = { Text(stringResource(R.string.inventory_purchase_unit_label)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = editor.purchaseToBaseFactorText,
                     onValueChange = { v -> onChange { it.copy(purchaseToBaseFactorText = v) } },
-                    label = { Text("1 purchase unit = ? base units") },
+                    label = { Text(stringResource(R.string.inventory_factor_label)) },
                     isError = editor.factor == null,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -172,7 +191,7 @@ private fun IngredientEditorDialog(
                 OutlinedTextField(
                     value = editor.lowStockThresholdText,
                     onValueChange = { v -> onChange { it.copy(lowStockThresholdText = v) } },
-                    label = { Text("Low-stock threshold (base units)") },
+                    label = { Text(stringResource(R.string.inventory_threshold_label)) },
                     isError = editor.threshold == null,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -191,25 +210,43 @@ private fun AdjustStockDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Apply", onClick = onApply, enabled = adjust.canApply) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
-        title = { Text("Adjust ${adjust.ingredientName}") },
+        confirmButton = {
+            PosButton(
+                text = stringResource(R.string.inventory_action_apply),
+                onClick = onApply,
+                enabled = adjust.canApply,
+            )
+        },
+        dismissButton = {
+            PosOutlinedButton(
+                text = stringResource(R.string.inventory_action_cancel),
+                onClick = onDismiss,
+            )
+        },
+        title = { Text(stringResource(R.string.inventory_adjust_title, adjust.ingredientName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Reason", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(R.string.inventory_adjust_reason_heading),
+                    style = MaterialTheme.typography.labelLarge,
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     InventoryViewModel.ADJUST_REASONS.forEach { reason ->
                         FilterChip(
                             selected = reason == adjust.reason,
                             onClick = { onChange { it.copy(reason = reason) } },
-                            label = { Text(reason.name.replace('_', ' ')) },
+                            label = { Text(stringResource(reason.labelRes())) },
                         )
                     }
                 }
                 OutlinedTextField(
                     value = adjust.qtyText,
                     onValueChange = { v -> onChange { it.copy(qtyText = v) } },
-                    label = { Text("Quantity in ${adjust.baseUnit.name.lowercase()} (- to remove)") },
+                    label = {
+                        Text(
+                            stringResource(R.string.inventory_adjust_qty_label, adjust.baseUnit.name.lowercase()),
+                        )
+                    },
                     isError = adjust.qty == null,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -218,7 +255,11 @@ private fun AdjustStockDialog(
                     OutlinedTextField(
                         value = adjust.unitCostText,
                         onValueChange = { v -> onChange { it.copy(unitCostText = v) } },
-                        label = { Text("Cost per ${adjust.baseUnit.name.lowercase()}") },
+                        label = {
+                            Text(
+                                stringResource(R.string.inventory_adjust_cost_label, adjust.baseUnit.name.lowercase()),
+                            )
+                        },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     )
@@ -226,4 +267,15 @@ private fun AdjustStockDialog(
             }
         },
     )
+}
+
+/** Display label for a stock reason; the stored value stays the language-neutral enum name. */
+@StringRes
+internal fun StockReason.labelRes(): Int = when (this) {
+    StockReason.PURCHASE -> R.string.stock_reason_purchase
+    StockReason.WASTE -> R.string.stock_reason_waste
+    StockReason.SPOILAGE -> R.string.stock_reason_spoilage
+    StockReason.STAFF_MEAL -> R.string.stock_reason_staff_meal
+    StockReason.COUNT_CORRECTION, StockReason.SALE, StockReason.OPENING ->
+        R.string.stock_reason_count_correction
 }

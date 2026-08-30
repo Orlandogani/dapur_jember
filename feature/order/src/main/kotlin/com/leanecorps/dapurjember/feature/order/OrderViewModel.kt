@@ -211,7 +211,7 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             val actorId = authorise.actorFor(Permission.VOID_SENT_LINE, action.pin.takeIf { it.isNotBlank() })
             if (actorId == null) {
-                lineAction.value = action.copy(pin = "", error = "That PIN cannot authorise a void.")
+                lineAction.value = action.copy(pin = "", pinRejected = true)
                 return@launch
             }
             orderRepository.voidLine(action.lineId, action.storedReason, actorId)
@@ -244,7 +244,7 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             val actorId = authorise.actorFor(Permission.APPLY_DISCOUNT, draft.pin.takeIf { it.isNotBlank() })
             if (actorId == null) {
-                discount.value = draft.copy(pin = "", error = "That PIN cannot authorise a discount.")
+                discount.value = draft.copy(pin = "", pinRejected = true)
                 return@launch
             }
             orderRepository.applyDiscount(

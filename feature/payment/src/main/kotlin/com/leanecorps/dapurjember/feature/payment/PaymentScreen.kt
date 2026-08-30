@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -73,15 +74,23 @@ internal fun PaymentScreen(
     LaunchedEffect(state.balanceMinor) { if (amount.isEmpty()) amount = state.balanceMinor.toString() }
 
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AmountRow("Total", state.totalMinor)
-        AmountRow("Paid", state.paidMinor)
-        AmountRow("Balance", state.balanceMinor, emphasise = true)
+        AmountRow(stringResource(R.string.payment_total), state.totalMinor)
+        AmountRow(stringResource(R.string.payment_paid), state.paidMinor)
+        AmountRow(stringResource(R.string.payment_balance), state.balanceMinor, emphasise = true)
 
         if (state.settled) {
-            Text("Paid in full", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.payment_paid_in_full), style = MaterialTheme.typography.titleMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PosOutlinedButton(text = "Reprint receipt", onClick = onReprint, modifier = Modifier.weight(1f))
-                PosButton(text = "Done", onClick = onDone, modifier = Modifier.weight(1f))
+                PosOutlinedButton(
+                    text = stringResource(R.string.payment_action_reprint),
+                    onClick = onReprint,
+                    modifier = Modifier.weight(1f),
+                )
+                PosButton(
+                    text = stringResource(R.string.payment_action_done),
+                    onClick = onDone,
+                    modifier = Modifier.weight(1f),
+                )
             }
             return@Column
         }
@@ -95,14 +104,14 @@ internal fun PaymentScreen(
         OutlinedTextField(
             value = amount,
             onValueChange = { amount = it.filter(Char::isDigit) },
-            label = { Text("Amount (minor units)") },
+            label = { Text(stringResource(R.string.payment_amount_label)) },
         )
 
         if (method == PaymentMethod.CASH) {
             OutlinedTextField(
                 value = tendered,
                 onValueChange = { tendered = it.filter(Char::isDigit) },
-                label = { Text("Cash tendered") },
+                label = { Text(stringResource(R.string.payment_tendered_label)) },
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(5_000L, 10_000L, 20_000L, 50_000L, 100_000L).forEach { denom ->
@@ -110,18 +119,18 @@ internal fun PaymentScreen(
                 }
             }
             val change = (tendered.toLongOrNull() ?: 0L) - (amount.toLongOrNull() ?: 0L)
-            if (change > 0) AmountRow("Change", change, emphasise = true)
+            if (change > 0) AmountRow(stringResource(R.string.payment_change), change, emphasise = true)
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PosOutlinedButton(
-                text = "Split bill",
+                text = stringResource(R.string.payment_action_split),
                 onClick = onSplit,
                 enabled = state.lines.isNotEmpty(),
                 modifier = Modifier.weight(1f),
             )
             PosButton(
-                text = "Take payment",
+                text = stringResource(R.string.payment_action_take),
                 onClick = {
                     val a = amount.toLongOrNull() ?: 0L
                     val t = if (method == PaymentMethod.CASH) (tendered.toLongOrNull() ?: a) else a

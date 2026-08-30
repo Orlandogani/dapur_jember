@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="inventory_title">Inventory</string>
+    <string name="inventory_action_back">Back</string>
+    <string name="inventory_action_add">Add ingredient</string>
+    <string name="inventory_no_permission">Stock changes are available to managers and owners.</string>
+    <string name="inventory_empty">No ingredients yet.</string>
+    <string name="inventory_stock_low">%1$s  · LOW</string>
+    <string name="inventory_action_edit">Edit</string>
+    <string name="inventory_action_adjust">Adjust</string>
+    <string name="inventory_action_save">Save</string>
+    <string name="inventory_action_cancel">Cancel</string>
+    <string name="inventory_action_delete">Delete</string>
+    <string name="inventory_editor_new">New ingredient</string>
+    <string name="inventory_editor_edit">Edit ingredient</string>
+    <string name="inventory_name_label">Name</string>
+    <string name="inventory_base_unit_heading">Base unit</string>
+    <string name="inventory_purchase_unit_label">Purchase unit (e.g. sack, box)</string>
+    <string name="inventory_factor_label">1 purchase unit = ? base units</string>
+    <string name="inventory_threshold_label">Low-stock threshold (base units)</string>
+    <string name="inventory_adjust_title">Adjust %1$s</string>
+    <string name="inventory_adjust_reason_heading">Reason</string>
+    <string name="inventory_adjust_qty_label">Quantity in %1$s (- to remove)</string>
+    <string name="inventory_adjust_cost_label">Cost per %1$s</string>
+    <string name="inventory_action_apply">Apply</string>
+    <string name="stock_reason_purchase">Purchase</string>
+    <string name="stock_reason_waste">Waste</string>
+    <string name="stock_reason_spoilage">Spoilage</string>
+    <string name="stock_reason_staff_meal">Staff meal</string>
+    <string name="stock_reason_count_correction">Count correction</string>
+</resources>

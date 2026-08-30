@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leanecorps.dapurjember.core.domain.backup.BackupFile
 import com.leanecorps.dapurjember.core.domain.backup.BackupRepository
+import com.leanecorps.dapurjember.core.domain.backup.RestoreFailure
 import com.leanecorps.dapurjember.core.domain.backup.RestoreResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,16 +15,26 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private const val MIN_PASSPHRASE = 8
+internal const val MIN_PASSPHRASE = 8
 
 data class BackupUiState(
     val backups: List<BackupFile> = emptyList(),
     val busy: Boolean = false,
-    val message: String? = null,
+    val message: BackupMessage? = null,
     val createDialog: CreateBackupDraft? = null,
     val restoreDialog: RestoreDraft? = null,
     val restartRequired: Boolean = false,
 )
+
+/**
+ * What the snackbar should say, as data rather than prose. The wording is looked up in
+ * `strings.xml` at render time so it can be translated (NFR8).
+ */
+sealed interface BackupMessage {
+    data class Saved(val fileName: String) : BackupMessage
+    data object CreateFailed : BackupMessage
+    data class RestoreFailed(val reason: RestoreFailure) : BackupMessage
+}
 
 data class CreateBackupDraft(val passphrase: String = "", val confirm: String = "") {
     val tooShort: Boolean get() = passphrase.isNotEmpty() && passphrase.length < MIN_PASSPHRASE
@@ -69,8 +80,8 @@ class BackupViewModel @Inject constructor(
                 it.copy(
                     busy = false,
                     message = result.fold(
-                        onSuccess = { file -> "Backup saved: ${file.name}" },
-                        onFailure = { e -> "Backup failed: ${e.message}" },
+                        onSuccess = { file -> BackupMessage.Saved(file.name) },
+                        onFailure = { BackupMessage.CreateFailed },
                     ),
                 )
             }
@@ -96,7 +107,11 @@ class BackupViewModel @Inject constructor(
                 }
 
                 is RestoreResult.Failed -> local.update {
-                    it.copy(busy = false, restoreDialog = draft.copy(passphrase = ""), message = result.message)
+                    it.copy(
+                        busy = false,
+                        restoreDialog = draft.copy(passphrase = ""),
+                        message = BackupMessage.RestoreFailed(result.reason),
+                    )
                 }
             }
         }

@@ -18,7 +18,7 @@ class BillSplitTest {
     fun `an even split hands the odd minor units to the earliest guests`() {
         val parts = BillSplit.evenly(Money(1_000), ways = 3)
         assertEquals(listOf(334L, 333L, 333L), parts.map { it.amount.minor })
-        assertEquals(listOf("Guest 1", "Guest 2", "Guest 3"), parts.map { it.label })
+        assertEquals(listOf(0, 1, 2), parts.map { it.guestIndex })
     }
 
     @Test
@@ -38,9 +38,9 @@ class BillSplitTest {
         // Lines: A 60_000, B 30_000. Total 108_900 after 10% tax and rounding.
         val parts = BillSplit.byItem(
             total = Money(108_900),
-            weightsByGuest = mapOf("A" to Money(60_000), "B" to Money(30_000)),
+            weightsByGuest = mapOf(0 to Money(60_000), 1 to Money(30_000)),
         )
-        assertEquals(listOf("A", "B"), parts.map { it.label })
+        assertEquals(listOf(0, 1), parts.map { it.guestIndex })
         assertEquals(listOf(72_600L, 36_300L), parts.map { it.amount.minor })
         assertEquals(108_900L, parts.sumOf { it.amount.minor })
     }
@@ -49,16 +49,16 @@ class BillSplitTest {
     fun `a guest who ordered nothing is left out of the split`() {
         val parts = BillSplit.byItem(
             total = Money(10_000),
-            weightsByGuest = mapOf("A" to Money(10_000), "B" to Money.ZERO),
+            weightsByGuest = mapOf(0 to Money(10_000), 1 to Money.ZERO),
         )
-        assertEquals(listOf("A"), parts.map { it.label })
+        assertEquals(listOf(0), parts.map { it.guestIndex })
         assertEquals(10_000L, parts.single().amount.minor)
     }
 
     @Test
     fun `a split where nobody ordered anything is rejected`() {
         assertThrows(IllegalArgumentException::class.java) {
-            BillSplit.byItem(Money(10_000), mapOf("A" to Money.ZERO))
+            BillSplit.byItem(Money(10_000), mapOf(0 to Money.ZERO))
         }
     }
 
@@ -92,7 +92,7 @@ class BillSplitTest {
         ) { totalMinor, a, b, c ->
             val parts = BillSplit.byItem(
                 total = Money(totalMinor),
-                weightsByGuest = mapOf("A" to Money(a), "B" to Money(b), "C" to Money(c)),
+                weightsByGuest = mapOf(0 to Money(a), 1 to Money(b), 2 to Money(c)),
             )
             check(parts.sumOf { it.amount.minor } == totalMinor)
         }

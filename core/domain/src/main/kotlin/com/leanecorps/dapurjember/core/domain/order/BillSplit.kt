@@ -16,8 +16,11 @@ import com.leanecorps.dapurjember.core.common.money.splitEvenly
  */
 object BillSplit {
 
-    /** One person's share of the bill. */
-    data class Part(val label: String, val amount: Money)
+    /**
+     * One guest's share. Identified by index, not by a display name — formatting "Guest 1"
+     * is a UI concern and must stay out of the domain so it can be localised (NFR8).
+     */
+    data class Part(val guestIndex: Int, val amount: Money)
 
     /**
      * Splits [total] into [ways] equal parts. Odd minor units go to the earliest parts, so
@@ -26,7 +29,7 @@ object BillSplit {
      */
     fun evenly(total: Money, ways: Int): List<Part> {
         require(ways > 0) { "ways must be positive, was $ways" }
-        return total.splitEvenly(ways).mapIndexed { index, amount -> Part("Guest ${index + 1}", amount) }
+        return total.splitEvenly(ways).mapIndexed { index, amount -> Part(index, amount) }
     }
 
     /**
@@ -37,13 +40,13 @@ object BillSplit {
      *
      * A guest who ordered nothing is dropped — charging them 0 would just add a payment step.
      */
-    fun byItem(total: Money, weightsByGuest: Map<String, Money>): List<Part> {
+    fun byItem(total: Money, weightsByGuest: Map<Int, Money>): List<Part> {
         val ordering = weightsByGuest.filterValues { it.minor > 0L }
         require(ordering.isNotEmpty()) { "at least one guest must have something to pay for" }
 
-        val labels = ordering.keys.toList()
-        val amounts = total.allocate(labels.map { ordering.getValue(it).minor })
-        return labels.mapIndexed { index, label -> Part(label, amounts[index]) }
+        val guests = ordering.keys.sorted()
+        val amounts = total.allocate(guests.map { ordering.getValue(it).minor })
+        return guests.mapIndexed { index, guest -> Part(guest, amounts[index]) }
     }
 
     /**

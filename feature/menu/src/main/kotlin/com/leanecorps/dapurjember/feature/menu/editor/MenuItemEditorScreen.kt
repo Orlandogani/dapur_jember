@@ -29,12 +29,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leanecorps.dapurjember.core.designsystem.component.PosButton
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
+import com.leanecorps.dapurjember.feature.menu.R
 import java.util.Locale
 
 @Composable
@@ -47,7 +49,11 @@ fun MenuItemEditorScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(if (state.isNew) "New item" else "Edit item") })
+            TopAppBar(
+                title = {
+                    Text(stringResource(if (state.isNew) R.string.editor_title_new else R.string.editor_title_edit))
+                },
+            )
         },
     ) { padding ->
         if (state.loading) {
@@ -94,15 +100,25 @@ private fun RecipeDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { PosButton(text = "Save recipe", onClick = onSave, enabled = recipe.canSave) },
-        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
-        title = { Text("Recipe · ${recipe.variantName}") },
+        confirmButton = {
+            PosButton(text = stringResource(R.string.recipe_action_save), onClick = onSave, enabled = recipe.canSave)
+        },
+        dismissButton = {
+            PosOutlinedButton(
+                text = stringResource(R.string.recipe_action_cancel),
+                onClick = onDismiss,
+            )
+        },
+        title = { Text(stringResource(R.string.recipe_dialog_title, recipe.variantName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (ingredients.isEmpty()) {
-                    Text("Add ingredients in Inventory first.", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.recipe_no_ingredients), color = MaterialTheme.colorScheme.error)
                 }
-                Text("Cost so far: ${recipe.costMinor}", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(R.string.recipe_cost_so_far, recipe.costMinor.toString()),
+                    style = MaterialTheme.typography.labelLarge,
+                )
                 recipe.rows.forEachIndexed { index, row ->
                     Column {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -119,19 +135,23 @@ private fun RecipeDialog(
                                 value = row.qtyText,
                                 onValueChange = { v -> onEditRow(index) { it.copy(qtyText = v) } },
                                 label = {
-                                    val unit = ingredients.firstOrNull { it.id == row.ingredientId }?.baseUnit ?: "qty"
-                                    Text("Quantity ($unit)")
+                                    val unit = ingredients.firstOrNull { it.id == row.ingredientId }?.baseUnit
+                                        ?: stringResource(R.string.recipe_qty_unit_fallback)
+                                    Text(stringResource(R.string.recipe_qty_label, unit))
                                 },
                                 isError = row.qty == null,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
                             )
-                            PosOutlinedButton(text = "×", onClick = { onRemoveRow(index) })
+                            PosOutlinedButton(
+                                text = stringResource(R.string.editor_action_remove),
+                                onClick = { onRemoveRow(index) },
+                            )
                         }
                     }
                 }
-                PosOutlinedButton(text = "Add ingredient", onClick = onAddRow)
+                PosOutlinedButton(text = stringResource(R.string.recipe_action_add_ingredient), onClick = onAddRow)
             }
         },
     )
@@ -162,12 +182,12 @@ private fun EditorBody(
         OutlinedTextField(
             value = draft.name,
             onValueChange = { v -> onEdit { it.copy(name = v) } },
-            label = { Text("Item name") },
+            label = { Text(stringResource(R.string.editor_item_name_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Text("Category", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.editor_category_heading), style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             state.categories.forEach { option ->
                 FilterChip(
@@ -178,13 +198,16 @@ private fun EditorBody(
             }
         }
         if (state.categories.isEmpty()) {
-            Text("Add a category first.", color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.editor_no_categories), color = MaterialTheme.colorScheme.error)
         }
 
-        ToggleRow("Available", draft.available) { v -> onEdit { it.copy(available = v) } }
-        ToggleRow("Tax exempt", draft.taxExempt) { v -> onEdit { it.copy(taxExempt = v) } }
+        ToggleRow(stringResource(R.string.editor_available), draft.available) { v -> onEdit { it.copy(available = v) } }
+        ToggleRow(
+            stringResource(R.string.editor_tax_exempt),
+            draft.taxExempt,
+        ) { v -> onEdit { it.copy(taxExempt = v) } }
 
-        Text("Variants", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.editor_variants_heading), style = MaterialTheme.typography.labelLarge)
         draft.variants.forEach { variant ->
             VariantRow(
                 variant = variant,
@@ -198,21 +221,24 @@ private fun EditorBody(
             if (!state.isNew) {
                 val margin = state.marginFor(variant)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PosOutlinedButton(text = "Recipe…", onClick = { onOpenRecipe(variant.id) })
+                    PosOutlinedButton(
+                        text = stringResource(R.string.recipe_action_open),
+                        onClick = { onOpenRecipe(variant.id) },
+                    )
                     Text(
-                        text = margin.marginPercent
-                            ?.let { "cost ${margin.costMinor} · ${formatPercent(it)} margin" }
-                            ?: "no recipe",
+                        text = margin.marginPercent?.let {
+                            stringResource(R.string.recipe_margin, margin.costMinor.toString(), formatPercent(it))
+                        } ?: stringResource(R.string.recipe_none),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.align(Alignment.CenterVertically),
                     )
                 }
             }
         }
-        PosOutlinedButton(text = "Add variant", onClick = onAddVariant)
+        PosOutlinedButton(text = stringResource(R.string.editor_action_add_variant), onClick = onAddVariant)
 
         if (state.modifierGroups.isNotEmpty()) {
-            Text("Modifier groups", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.editor_modifier_groups_heading), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 state.modifierGroups.forEach { group ->
                     FilterChip(
@@ -226,10 +252,14 @@ private fun EditorBody(
 
         Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (!state.isNew) {
-                PosOutlinedButton(text = "Delete", onClick = onDelete, modifier = Modifier.weight(1f))
+                PosOutlinedButton(
+                    text = stringResource(R.string.editor_action_delete),
+                    onClick = onDelete,
+                    modifier = Modifier.weight(1f),
+                )
             }
             PosButton(
-                text = "Save",
+                text = stringResource(R.string.editor_action_save),
                 onClick = onSave,
                 enabled = state.canSave,
                 modifier = Modifier.weight(1f),
@@ -251,21 +281,21 @@ private fun VariantRow(
         OutlinedTextField(
             value = variant.name,
             onValueChange = onName,
-            label = { Text("Name") },
+            label = { Text(stringResource(R.string.editor_variant_name_label)) },
             singleLine = true,
             modifier = Modifier.weight(1f),
         )
         OutlinedTextField(
             value = variant.priceText,
             onValueChange = onPrice,
-            label = { Text("Price") },
+            label = { Text(stringResource(R.string.editor_variant_price_label)) },
             isError = variant.priceMinor(minorUnits) == null,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.weight(1f),
         )
         if (canRemove) {
-            PosOutlinedButton(text = "×", onClick = onRemove)
+            PosOutlinedButton(text = stringResource(R.string.editor_action_remove), onClick = onRemove)
         }
     }
 }
