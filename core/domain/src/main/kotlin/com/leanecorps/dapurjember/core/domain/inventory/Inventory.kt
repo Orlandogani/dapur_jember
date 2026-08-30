@@ -37,6 +37,27 @@ data class StockMovement(
     val createdAt: Long,
 )
 
+/**
+ * One ingredient line of a variant's recipe (FR-I2). Recipes attach to the **variant**, not
+ * the item, because a Large portion uses more chicken (FR-M4). [qtyBase] is in the
+ * ingredient's base unit.
+ */
+data class RecipeLine(
+    val id: String,
+    val menuVariantId: String,
+    val ingredientId: String,
+    val qtyBase: Double,
+)
+
+/** A recipe line joined to its ingredient — what the editor and the cost calculation need. */
+data class RecipeLineWithIngredient(
+    val line: RecipeLine,
+    val ingredient: Ingredient,
+) {
+    /** What this line contributes to the dish's cost at the ingredient's current average cost. */
+    val cost: Money get() = Money((line.qtyBase * ingredient.avgCostPerBase.minor).toLong())
+}
+
 data class StockAdjustment(
     val ingredientId: String,
     /** Positive adds to stock, negative removes. */
@@ -67,4 +88,19 @@ interface InventoryRepository {
      * rolls the weighted-average cost.
      */
     suspend fun adjustStock(adjustment: StockAdjustment)
+
+    // --- Recipes (FR-I2) ---
+
+    fun observeRecipe(menuVariantId: String): Flow<List<RecipeLineWithIngredient>>
+
+    suspend fun getRecipe(menuVariantId: String): List<RecipeLineWithIngredient>
+
+    /** Replaces the variant's recipe in one transaction; lines not in [lines] are soft-deleted. */
+    suspend fun saveRecipe(menuVariantId: String, lines: List<RecipeLine>)
+
+    /**
+     * Cost per dish = Σ (ingredient qty × ingredient average cost) (FR-I4). Zero for a
+     * variant with no recipe — food cost is opt-in per item (Risk R8).
+     */
+    suspend fun costOfVariant(menuVariantId: String): Money
 }

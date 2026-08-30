@@ -10,10 +10,12 @@ import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.data.device.DeviceIdProvider
 import com.leanecorps.dapurjember.core.domain.inventory.BaseUnit
 import com.leanecorps.dapurjember.core.domain.inventory.Ingredient
+import com.leanecorps.dapurjember.core.domain.inventory.RecipeLine
 import com.leanecorps.dapurjember.core.domain.inventory.StockAdjustment
 import com.leanecorps.dapurjember.core.domain.inventory.StockReason
 import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
 import com.leanecorps.dapurjember.core.testing.database.OperationalEntityFixtures
+import com.leanecorps.dapurjember.core.testing.database.seedOrderPrerequisites
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -42,6 +44,7 @@ class InventoryRepositoryImplTest {
             db = db,
             ingredientDao = db.ingredientDao(),
             stockMovementDao = db.stockMovementDao(),
+            recipeLineDao = db.recipeLineDao(),
             changeLog = ChangeLogRecorder(db.changeLogDao(), deviceIds),
             auditLog = AuditLogRecorder(db.auditLogDao()),
             time = time,
@@ -92,6 +95,44 @@ class InventoryRepositoryImplTest {
         assertEquals(Money(60), chicken.avgCostPerBase)
         assertEquals(2, repo.observeMovements("chicken").first().size)
         assertEquals("STOCK_ADJUST", db.auditLogDao().observeRecent(10).first().first().action)
+    }
+
+    @Test
+    fun `saveRecipe replaces the variant's lines and costOfVariant sums qty times average cost`() = runTest {
+        db.seedOrderPrerequisites() // menu_variant "var-1"
+        seedChicken()
+        repo.adjustStock(StockAdjustment("chicken", 1_000.0, StockReason.PURCHASE, "staff-1", Money(50)))
+        repo.upsertIngredient(
+            Ingredient(
+                id = "rice",
+                name = "Rice",
+                baseUnit = BaseUnit.G,
+                purchaseUnit = "sack",
+                purchaseToBaseFactor = 25_000.0,
+                currentStockBase = 0.0,
+                avgCostPerBase = Money.ZERO,
+                lowStockThresholdBase = 0.0,
+            ),
+        )
+        repo.adjustStock(StockAdjustment("rice", 1_000.0, StockReason.PURCHASE, "staff-1", Money(10)))
+
+        repo.saveRecipe(
+            "var-1",
+            listOf(
+                RecipeLine(id = "r1", menuVariantId = "var-1", ingredientId = "chicken", qtyBase = 100.0),
+                RecipeLine(id = "r2", menuVariantId = "var-1", ingredientId = "rice", qtyBase = 200.0),
+            ),
+        )
+        // 100×50 + 200×10 = 7000
+        assertEquals(Money(7_000), repo.costOfVariant("var-1"))
+
+        // Drop rice, keep chicken at a new quantity.
+        repo.saveRecipe(
+            "var-1",
+            listOf(RecipeLine(id = "r3", menuVariantId = "var-1", ingredientId = "chicken", qtyBase = 150.0)),
+        )
+        assertEquals(listOf("Chicken"), repo.getRecipe("var-1").map { it.ingredient.name })
+        assertEquals(Money(7_500), repo.costOfVariant("var-1"))
     }
 
     @Test

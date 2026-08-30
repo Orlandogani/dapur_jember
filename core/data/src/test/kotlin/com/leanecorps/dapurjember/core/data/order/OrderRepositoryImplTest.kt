@@ -7,6 +7,7 @@ import com.leanecorps.dapurjember.core.data.database.AuditLogRecorder
 import com.leanecorps.dapurjember.core.data.database.ChangeLogRecorder
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.data.device.DeviceIdProvider
+import com.leanecorps.dapurjember.core.data.inventory.StockDeductor
 import com.leanecorps.dapurjember.core.domain.order.AddLineParams
 import com.leanecorps.dapurjember.core.domain.order.ApplyDiscountParams
 import com.leanecorps.dapurjember.core.domain.order.DiscountKind
@@ -18,6 +19,7 @@ import com.leanecorps.dapurjember.core.domain.order.PaymentMethod
 import com.leanecorps.dapurjember.core.domain.order.RecordPaymentParams
 import com.leanecorps.dapurjember.core.domain.printing.TicketPrinter
 import com.leanecorps.dapurjember.core.testing.FakeTimeProvider
+import com.leanecorps.dapurjember.core.testing.database.InventoryEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.MenuEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.seedOrderPrerequisites
 import com.leanecorps.dapurjember.core.testing.repository.FakePrintQueue
@@ -76,6 +78,14 @@ class OrderRepositoryImplTest {
                 printerConfigDao = db.printerConfigDao(),
             ),
             ticketPrinter = TicketPrinter(ticketRenderer, printQueue, FakePrintQueueScheduler()),
+            stockDeductor = StockDeductor(
+                orderLineDao = db.orderLineDao(),
+                recipeLineDao = db.recipeLineDao(),
+                ingredientDao = db.ingredientDao(),
+                stockMovementDao = db.stockMovementDao(),
+                changeLog = ChangeLogRecorder(db.changeLogDao(), deviceIds),
+                deviceIds = deviceIds,
+            ),
         )
     }
 
@@ -195,6 +205,49 @@ class OrderRepositoryImplTest {
 
         assertEquals(1, printQueue.enqueued.count { it.type.name == "RECEIPT" })
         assertEquals("A-001", ticketRenderer.receipts.single().orderNumber)
+    }
+
+    @Test
+    fun `FR-I3 reaching PAID deducts the recipe from stock exactly once, with a SALE movement per line`() = runTest {
+        db.storeProfileDao().upsert(MenuEntityFixtures.storeProfile().copy(taxRateBp = 0))
+        db.ingredientDao().upsert(InventoryEntityFixtures.ingredient(id = "rice", currentStockBase = 5_000.0))
+        db.recipeLineDao().upsert(
+            InventoryEntityFixtures.recipeLine(
+                id = "r1",
+                menuVariantId = "var-1",
+                ingredientId = "rice",
+                qtyBase = 200.0,
+            ),
+        )
+        val id = openOrder()
+        addLine(id, qty = 3) // 3 × 200g = 600g
+        time.advanceBy(1)
+        repo.sendToKitchen(id)
+        repo.applyEvent(id, OrderEvent.SERVE)
+
+        repo.applyEvent(id, OrderEvent.PAY)
+
+        assertEquals(4_400.0, db.ingredientDao().getById("rice")!!.currentStockBase, 0.0)
+        val lineId = repo.getOrder(id)!!.lines.single().id
+        val movements = db.stockMovementDao().getForOrderLine(lineId)
+        assertEquals(1, movements.size)
+        assertEquals("SALE", movements.single().reason)
+        assertEquals(-600.0, movements.single().qtyBaseDelta, 0.0)
+    }
+
+    @Test
+    fun `a line with no recipe deducts nothing (food cost is opt-in)`() = runTest {
+        db.storeProfileDao().upsert(MenuEntityFixtures.storeProfile().copy(taxRateBp = 0))
+        db.ingredientDao().upsert(InventoryEntityFixtures.ingredient(id = "rice", currentStockBase = 5_000.0))
+        val id = openOrder()
+        addLine(id)
+        time.advanceBy(1)
+        repo.sendToKitchen(id)
+        repo.applyEvent(id, OrderEvent.SERVE)
+
+        repo.applyEvent(id, OrderEvent.PAY)
+
+        assertEquals(5_000.0, db.ingredientDao().getById("rice")!!.currentStockBase, 0.0)
     }
 
     @Test

@@ -24,6 +24,7 @@ import com.leanecorps.dapurjember.core.data.database.entity.OrderLineEntity
 import com.leanecorps.dapurjember.core.data.database.entity.OrderLineModifierEntity
 import com.leanecorps.dapurjember.core.data.database.entity.PaymentEntity
 import com.leanecorps.dapurjember.core.data.device.DeviceIdProvider
+import com.leanecorps.dapurjember.core.data.inventory.StockDeductor
 import com.leanecorps.dapurjember.core.domain.order.AddLineParams
 import com.leanecorps.dapurjember.core.domain.order.ApplyDiscountParams
 import com.leanecorps.dapurjember.core.domain.order.DiscountKind
@@ -69,6 +70,7 @@ internal class OrderRepositoryImpl @Inject constructor(
     private val deviceIds: DeviceIdProvider,
     private val ticketAssembler: TicketAssembler,
     private val ticketPrinter: TicketPrinter,
+    private val stockDeductor: StockDeductor,
 ) : OrderRepository {
 
     override fun observeOrder(orderId: String): Flow<Order?> =
@@ -213,6 +215,8 @@ internal class OrderRepositoryImpl @Inject constructor(
         orderDao.updateState(orderId, target.storageValue, now)
         changeLog.record("orders", orderId, ChangeOp.UPDATE, now)
         if (target == OrderState.PAID && from != OrderState.PAID) {
+            // FR-I3: stock comes off on payment, in this transaction — never on send-to-kitchen.
+            stockDeductor.deductForOrder(orderId, order.openedByStaffId, now)
             ticketAssembler.receipt(orderId, now)?.let { receipt ->
                 ticketPrinter.printReceipt(receipt, ticketAssembler.paperWidthMmFor(PrinterRole.RECEIPT))
             }

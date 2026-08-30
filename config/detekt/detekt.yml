@@ -40,4 +40,4 @@ complexity:
     excludes:
       ['**/*Repository.kt', '**/*RepositoryImpl.kt', '**/*Dao.kt', '**/EscPosBuilder.kt',
        '**/di/*Module.kt', '**/*ViewModel.kt', '**/setup/SetupWizard*.kt',
-       '**/test/**', '**/androidTest/**']
+       '**/inventory/Inventory.kt', '**/test/**', '**/androidTest/**']

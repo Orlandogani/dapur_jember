@@ -1,14 +1,18 @@
 package com.leanecorps.dapurjember.core.testing.repository
 
 import com.leanecorps.dapurjember.core.common.id.UuidV7
+import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.domain.inventory.Ingredient
 import com.leanecorps.dapurjember.core.domain.inventory.InventoryRepository
+import com.leanecorps.dapurjember.core.domain.inventory.RecipeLine
+import com.leanecorps.dapurjember.core.domain.inventory.RecipeLineWithIngredient
 import com.leanecorps.dapurjember.core.domain.inventory.StockAdjustment
 import com.leanecorps.dapurjember.core.domain.inventory.StockMovement
 import com.leanecorps.dapurjember.core.domain.inventory.StockReason
 import com.leanecorps.dapurjember.core.domain.inventory.weightedAverageAfterPurchase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
@@ -16,6 +20,7 @@ class FakeInventoryRepository : InventoryRepository {
 
     private val ingredients = MutableStateFlow<List<Ingredient>>(emptyList())
     private val movements = MutableStateFlow<List<StockMovement>>(emptyList())
+    private val recipes = MutableStateFlow<List<RecipeLine>>(emptyList())
 
     override fun observeIngredients(): Flow<List<Ingredient>> = ingredients
 
@@ -64,5 +69,28 @@ class FakeInventoryRepository : InventoryRepository {
                 createdAt = 0,
             )
         }
+    }
+
+    override fun observeRecipe(menuVariantId: String): Flow<List<RecipeLineWithIngredient>> =
+        combine(recipes, ingredients) { lines, all -> joinRecipe(lines, all, menuVariantId) }
+
+    override suspend fun getRecipe(menuVariantId: String): List<RecipeLineWithIngredient> =
+        joinRecipe(recipes.value, ingredients.value, menuVariantId)
+
+    override suspend fun saveRecipe(menuVariantId: String, lines: List<RecipeLine>) = recipes.update { current ->
+        current.filterNot { it.menuVariantId == menuVariantId } + lines.map { it.copy(menuVariantId = menuVariantId) }
+    }
+
+    override suspend fun costOfVariant(menuVariantId: String): Money =
+        getRecipe(menuVariantId).fold(Money.ZERO) { acc, line -> acc + line.cost }
+
+    private fun joinRecipe(
+        lines: List<RecipeLine>,
+        all: List<Ingredient>,
+        menuVariantId: String,
+    ): List<RecipeLineWithIngredient> {
+        val byId = all.associateBy { it.id }
+        return lines.filter { it.menuVariantId == menuVariantId }
+            .mapNotNull { line -> byId[line.ingredientId]?.let { RecipeLineWithIngredient(line, it) } }
     }
 }

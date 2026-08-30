@@ -4,11 +4,14 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.domain.config.StoreProfile
+import com.leanecorps.dapurjember.core.domain.inventory.BaseUnit
+import com.leanecorps.dapurjember.core.domain.inventory.Ingredient
 import com.leanecorps.dapurjember.core.domain.menu.Category
 import com.leanecorps.dapurjember.core.domain.menu.MenuItem
 import com.leanecorps.dapurjember.core.domain.menu.MenuVariant
 import com.leanecorps.dapurjember.core.domain.pricing.RoundingRule
 import com.leanecorps.dapurjember.core.testing.coroutines.MainDispatcherExtension
+import com.leanecorps.dapurjember.core.testing.repository.FakeInventoryRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeMenuRepository
 import com.leanecorps.dapurjember.core.testing.repository.FakeStoreProfileRepository
 import kotlinx.coroutines.flow.first
@@ -41,9 +44,12 @@ class MenuItemEditorViewModelTest {
         ),
     )
 
+    private val inventory = FakeInventoryRepository()
+
     private fun viewModel(itemId: String? = null) = MenuItemEditorViewModel(
         savedStateHandle = SavedStateHandle(itemId?.let { mapOf(MENU_ITEM_ID_ARG to it) } ?: emptyMap()),
         menuRepository = menu,
+        inventory = inventory,
         storeProfiles = profiles,
     )
 
@@ -69,6 +75,47 @@ class MenuItemEditorViewModelTest {
         assertEquals("Nasi Goreng", savedItem.name)
         val variants = menu.observeItemWithVariants(savedItem.id).first()!!.variants
         assertEquals(listOf(Money(350)), variants.map { it.price })
+    }
+
+    @Test
+    fun `the recipe sheet saves the variant's ingredient lines`() = runTest {
+        menu.upsertCategory(Category(id = "c1", name = "Rice"))
+        menu.saveItemWithVariants(
+            MenuItem(id = "i1", categoryId = "c1", name = "Nasi Goreng"),
+            listOf(MenuVariant(id = "v1", menuItemId = "i1", name = "Regular", price = Money(1_500))),
+        )
+        inventory.upsertIngredient(
+            Ingredient(
+                id = "rice",
+                name = "Rice",
+                baseUnit = BaseUnit.G,
+                purchaseUnit = "sack",
+                purchaseToBaseFactor = 25_000.0,
+                currentStockBase = 10_000.0,
+                avgCostPerBase = Money(10),
+                lowStockThresholdBase = 0.0,
+            ),
+        )
+        val vm = viewModel(itemId = "i1")
+
+        vm.uiState.test {
+            var state = awaitItem()
+            while (state.loading) state = awaitItem()
+
+            vm.openRecipe("v1")
+            var withRecipe = awaitItem()
+            while (withRecipe.recipe == null) withRecipe = awaitItem()
+
+            vm.editRecipeRow(0) { it.copy(ingredientId = "rice", qtyText = "200") }
+            vm.saveRecipe()
+            var saved = awaitItem()
+            while (saved.recipe != null) saved = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val recipe = inventory.getRecipe("v1")
+        assertEquals(listOf("Rice" to 200.0), recipe.map { it.ingredient.name to it.line.qtyBase })
+        assertEquals(Money(2_000), inventory.costOfVariant("v1")) // 200g × 10
     }
 
     @Test

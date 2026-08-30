@@ -13,8 +13,10 @@ data class MenuItemEditorState(
     val isNew: Boolean = true,
     val categories: List<CategoryOption> = emptyList(),
     val modifierGroups: List<ModifierGroupOption> = emptyList(),
+    val ingredients: List<IngredientOption> = emptyList(),
     val currencyMinorUnits: Int = 0,
     val draft: MenuItemDraft = MenuItemDraft(),
+    val recipe: RecipeEditorUi? = null,
     val done: Boolean = false,
 ) {
     val canSave: Boolean
@@ -27,6 +29,25 @@ data class MenuItemEditorState(
 data class CategoryOption(val id: String, val name: String)
 
 data class ModifierGroupOption(val id: String, val name: String)
+
+data class IngredientOption(val id: String, val name: String, val baseUnit: String)
+
+/** The recipe sheet for one variant (FR-I2). [costMinor] is Σ qty × avg cost (FR-I4). */
+data class RecipeEditorUi(
+    val variantId: String,
+    val variantName: String,
+    val rows: List<RecipeRowDraft>,
+    val costMinor: Long,
+) {
+    val canSave: Boolean get() = rows.all { it.ingredientId.isNotBlank() && it.qty != null }
+}
+
+data class RecipeRowDraft(
+    val ingredientId: String = "",
+    val qtyText: String = "",
+) {
+    val qty: Double? get() = qtyText.trim().toDoubleOrNull()?.takeIf { it > 0 }
+}
 
 data class MenuItemDraft(
     val id: String? = null,

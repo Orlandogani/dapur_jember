@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -60,10 +61,79 @@ fun MenuItemEditorScreen(
             onAddVariant = viewModel::addVariant,
             onRemoveVariant = viewModel::removeVariant,
             onToggleModifierGroup = viewModel::toggleModifierGroup,
+            onOpenRecipe = viewModel::openRecipe,
             onSave = viewModel::save,
             onDelete = viewModel::delete,
         )
     }
+
+    state.recipe?.let { recipe ->
+        RecipeDialog(
+            recipe = recipe,
+            ingredients = state.ingredients,
+            onEditRow = viewModel::editRecipeRow,
+            onAddRow = viewModel::addRecipeRow,
+            onRemoveRow = viewModel::removeRecipeRow,
+            onDismiss = viewModel::closeRecipe,
+            onSave = viewModel::saveRecipe,
+        )
+    }
+}
+
+@Composable
+@Suppress("LongParameterList")
+private fun RecipeDialog(
+    recipe: RecipeEditorUi,
+    ingredients: List<IngredientOption>,
+    onEditRow: (Int, (RecipeRowDraft) -> RecipeRowDraft) -> Unit,
+    onAddRow: () -> Unit,
+    onRemoveRow: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { PosButton(text = "Save recipe", onClick = onSave, enabled = recipe.canSave) },
+        dismissButton = { PosOutlinedButton(text = "Cancel", onClick = onDismiss) },
+        title = { Text("Recipe · ${recipe.variantName}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (ingredients.isEmpty()) {
+                    Text("Add ingredients in Inventory first.", color = MaterialTheme.colorScheme.error)
+                }
+                Text("Cost so far: ${recipe.costMinor}", style = MaterialTheme.typography.labelLarge)
+                recipe.rows.forEachIndexed { index, row ->
+                    Column {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ingredients.forEach { option ->
+                                FilterChip(
+                                    selected = option.id == row.ingredientId,
+                                    onClick = { onEditRow(index) { it.copy(ingredientId = option.id) } },
+                                    label = { Text(option.name) },
+                                )
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = row.qtyText,
+                                onValueChange = { v -> onEditRow(index) { it.copy(qtyText = v) } },
+                                label = {
+                                    val unit = ingredients.firstOrNull { it.id == row.ingredientId }?.baseUnit ?: "qty"
+                                    Text("Quantity ($unit)")
+                                },
+                                isError = row.qty == null,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f),
+                            )
+                            PosOutlinedButton(text = "×", onClick = { onRemoveRow(index) })
+                        }
+                    }
+                }
+                PosOutlinedButton(text = "Add ingredient", onClick = onAddRow)
+            }
+        },
+    )
 }
 
 @Composable
@@ -76,6 +146,7 @@ private fun EditorBody(
     onAddVariant: () -> Unit,
     onRemoveVariant: (String) -> Unit,
     onToggleModifierGroup: (String) -> Unit,
+    onOpenRecipe: (String) -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -122,6 +193,10 @@ private fun EditorBody(
                 onPrice = { v -> onEditVariant(variant.id) { it.copy(priceText = v) } },
                 onRemove = { onRemoveVariant(variant.id) },
             )
+            // Recipes attach to the variant (FR-I2/FR-M4) and only exist once the item is saved.
+            if (!state.isNew) {
+                PosOutlinedButton(text = "Recipe…", onClick = { onOpenRecipe(variant.id) })
+            }
         }
         PosOutlinedButton(text = "Add variant", onClick = onAddVariant)
 

@@ -9,18 +9,23 @@ import com.leanecorps.dapurjember.core.data.database.ChangeLogRecorder
 import com.leanecorps.dapurjember.core.data.database.ChangeOp
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.data.database.dao.IngredientDao
+import com.leanecorps.dapurjember.core.data.database.dao.RecipeLineDao
 import com.leanecorps.dapurjember.core.data.database.dao.StockMovementDao
 import com.leanecorps.dapurjember.core.data.database.entity.IngredientEntity
+import com.leanecorps.dapurjember.core.data.database.entity.RecipeLineEntity
 import com.leanecorps.dapurjember.core.data.database.entity.StockMovementEntity
 import com.leanecorps.dapurjember.core.data.device.DeviceIdProvider
 import com.leanecorps.dapurjember.core.domain.inventory.BaseUnit
 import com.leanecorps.dapurjember.core.domain.inventory.Ingredient
 import com.leanecorps.dapurjember.core.domain.inventory.InventoryRepository
+import com.leanecorps.dapurjember.core.domain.inventory.RecipeLine
+import com.leanecorps.dapurjember.core.domain.inventory.RecipeLineWithIngredient
 import com.leanecorps.dapurjember.core.domain.inventory.StockAdjustment
 import com.leanecorps.dapurjember.core.domain.inventory.StockMovement
 import com.leanecorps.dapurjember.core.domain.inventory.StockReason
 import com.leanecorps.dapurjember.core.domain.inventory.weightedAverageAfterPurchase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -53,6 +58,25 @@ internal fun Ingredient.toEntity(existing: IngredientEntity?, now: Long, deviceI
     revision = (existing?.revision ?: 0) + 1,
 )
 
+internal fun RecipeLineEntity.toDomain() = RecipeLine(
+    id = id,
+    menuVariantId = menuVariantId,
+    ingredientId = ingredientId,
+    qtyBase = qtyBase,
+)
+
+internal fun RecipeLine.toEntity(existing: RecipeLineEntity?, now: Long, deviceId: String) = RecipeLineEntity(
+    id = id,
+    menuVariantId = menuVariantId,
+    ingredientId = ingredientId,
+    qtyBase = qtyBase,
+    createdAt = existing?.createdAt ?: now,
+    updatedAt = now,
+    deletedAt = null,
+    deviceId = existing?.deviceId ?: deviceId,
+    revision = (existing?.revision ?: 0) + 1,
+)
+
 internal fun StockMovementEntity.toDomain() = StockMovement(
     id = id,
     ingredientId = ingredientId,
@@ -63,11 +87,12 @@ internal fun StockMovementEntity.toDomain() = StockMovement(
     createdAt = createdAt,
 )
 
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 internal class InventoryRepositoryImpl @Inject constructor(
     private val db: DapurJemberDatabase,
     private val ingredientDao: IngredientDao,
     private val stockMovementDao: StockMovementDao,
+    private val recipeLineDao: RecipeLineDao,
     private val changeLog: ChangeLogRecorder,
     private val auditLog: AuditLogRecorder,
     private val time: TimeProvider,
@@ -146,4 +171,52 @@ internal class InventoryRepositoryImpl @Inject constructor(
             reason = adjustment.reason.name,
         )
     }
+
+    override fun observeRecipe(menuVariantId: String): Flow<List<RecipeLineWithIngredient>> =
+        combine(
+            recipeLineDao.observeForVariant(menuVariantId),
+            ingredientDao.observeAll(),
+        ) { lines, ingredients ->
+            val byId = ingredients.associateBy { it.id }
+            lines.mapNotNull { line ->
+                byId[line.ingredientId]?.let { RecipeLineWithIngredient(line.toDomain(), it.toDomain()) }
+            }
+        }
+
+    override suspend fun getRecipe(menuVariantId: String): List<RecipeLineWithIngredient> =
+        recipeLineDao.getForVariant(menuVariantId).mapNotNull { line ->
+            ingredientDao.getById(line.ingredientId)?.let {
+                RecipeLineWithIngredient(line.toDomain(), it.toDomain())
+            }
+        }
+
+    override suspend fun saveRecipe(menuVariantId: String, lines: List<RecipeLine>) = db.withTransaction {
+        val now = time.nowMillis()
+        val device = deviceIds.deviceId()
+        val existingByIngredient = recipeLineDao.getForVariant(menuVariantId).associateBy { it.ingredientId }
+
+        lines.forEach { line ->
+            val existing = existingByIngredient[line.ingredientId]
+            // Reuse the existing row id so the (variant, ingredient) unique index still holds.
+            val toSave = line.copy(id = existing?.id ?: line.id, menuVariantId = menuVariantId)
+            recipeLineDao.upsert(toSave.toEntity(existing, now, device))
+            changeLog.record(
+                "recipe_line",
+                toSave.id,
+                if (existing == null) ChangeOp.INSERT else ChangeOp.UPDATE,
+                now,
+            )
+        }
+
+        val keptIngredients = lines.map { it.ingredientId }.toSet()
+        existingByIngredient.values
+            .filter { it.ingredientId !in keptIngredients }
+            .forEach { removed ->
+                recipeLineDao.softDelete(removed.id, now)
+                changeLog.record("recipe_line", removed.id, ChangeOp.DELETE, now)
+            }
+    }
+
+    override suspend fun costOfVariant(menuVariantId: String): Money =
+        getRecipe(menuVariantId).fold(Money.ZERO) { acc, line -> acc + line.cost }
 }
