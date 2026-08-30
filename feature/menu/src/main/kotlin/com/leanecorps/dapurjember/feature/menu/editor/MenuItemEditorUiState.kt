@@ -17,8 +17,13 @@ data class MenuItemEditorState(
     val currencyMinorUnits: Int = 0,
     val draft: MenuItemDraft = MenuItemDraft(),
     val recipe: RecipeEditorUi? = null,
+    /** Recipe cost per variant id, loaded for a saved item (FR-I4). */
+    val variantCosts: Map<String, Long> = emptyMap(),
     val done: Boolean = false,
 ) {
+    fun marginFor(variant: VariantDraft): VariantMarginUi =
+        variantMargin(variant.id, variantCosts[variant.id] ?: 0L, variant.priceMinor(currencyMinorUnits))
+
     val canSave: Boolean
         get() = draft.name.isNotBlank() &&
             draft.categoryId.isNotBlank() &&
@@ -31,6 +36,23 @@ data class CategoryOption(val id: String, val name: String)
 data class ModifierGroupOption(val id: String, val name: String)
 
 data class IngredientOption(val id: String, val name: String, val baseUnit: String)
+
+/**
+ * Live food cost for one variant (FR-I4): recipe cost against the entered price. Margin is
+ * `null` when the variant has no recipe or no price — an unknown margin must not render as 0%.
+ */
+data class VariantMarginUi(val variantId: String, val costMinor: Long, val marginPercent: Double?)
+
+internal fun variantMargin(variantId: String, costMinor: Long, priceMinor: Long?): VariantMarginUi =
+    VariantMarginUi(
+        variantId = variantId,
+        costMinor = costMinor,
+        marginPercent = when {
+            costMinor <= 0L -> null
+            priceMinor == null || priceMinor <= 0L -> null
+            else -> (priceMinor - costMinor) * 100.0 / priceMinor
+        },
+    )
 
 /** The recipe sheet for one variant (FR-I2). [costMinor] is Σ qty × avg cost (FR-I4). */
 data class RecipeEditorUi(

@@ -17,6 +17,7 @@ class FakeReportsRepository : ReportsRepository {
             orderCount = 0,
             covers = 0,
             grossRevenue = Money.ZERO,
+            cogs = Money.ZERO,
             paymentMix = emptyList(),
             discountCount = 0,
             discountTotal = Money.ZERO,

@@ -27,13 +27,14 @@ class ReportsViewModelTest {
             orderCount = 4,
             covers = 11,
             grossRevenue = Money(400_000),
+            cogs = Money(120_000),
             paymentMix = emptyList(),
             discountCount = 0,
             discountTotal = Money.ZERO,
             voidedOrders = 0,
             voidedLines = 0,
         )
-        itemSales["2026-08-29"] = listOf(ItemSales("Nasi Goreng", 8, Money(200_000)))
+        itemSales["2026-08-29"] = listOf(ItemSales("Nasi Goreng", 8, Money(200_000), Money(60_000)))
         summaries["2026-08-28"] = summaries.getValue("2026-08-29").copy(businessDay = "2026-08-28", orderCount = 1)
     }
 

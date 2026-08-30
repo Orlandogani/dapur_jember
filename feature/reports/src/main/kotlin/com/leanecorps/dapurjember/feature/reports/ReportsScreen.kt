@@ -30,6 +30,7 @@ import com.leanecorps.dapurjember.core.common.money.Money
 import com.leanecorps.dapurjember.core.common.money.formatMoney
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
 import com.leanecorps.dapurjember.core.domain.reports.DailySummary
+import java.util.Locale
 
 @Composable
 fun ReportsScreen(
@@ -74,7 +75,8 @@ fun ReportsScreen(
                     item { Text("Nothing sold on this day.", style = MaterialTheme.typography.bodyMedium) }
                 }
                 items(state.salesByItem, key = { it.name }) { row ->
-                    KeyValueRow("${row.quantity}× ${row.name}", money(row.gross))
+                    val margin = row.marginPercent?.let { "  ·  ${formatPercent(it)} margin" }.orEmpty()
+                    KeyValueRow(label = "${row.quantity}× ${row.name}", value = money(row.gross) + margin)
                 }
             }
         }
@@ -90,6 +92,16 @@ private fun SummaryCard(summary: DailySummary, money: (Money) -> String) {
             KeyValueRow("Covers", summary.covers.toString())
             KeyValueRow("Average ticket", money(summary.averageTicket))
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            KeyValueRow("COGS", money(summary.cogs))
+            KeyValueRow("Gross profit", money(summary.grossProfit), emphasise = true)
+            KeyValueRow("Gross margin", summary.grossMarginPercent?.let(::formatPercent) ?: "—")
+            if (summary.cogs.isZero && summary.orderCount > 0) {
+                Text(
+                    "No recipe costs recorded — add recipes to menu items to see food cost.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Text("Payment mix", style = MaterialTheme.typography.labelLarge)
             if (summary.paymentMix.isEmpty()) {
                 Text("No payments recorded.", style = MaterialTheme.typography.bodySmall)
@@ -101,6 +113,9 @@ private fun SummaryCard(summary: DailySummary, money: (Money) -> String) {
         }
     }
 }
+
+/** One decimal place, locale-independent so the number reads the same on every device. */
+private fun formatPercent(value: Double): String = String.format(Locale.ROOT, "%.1f%%", value)
 
 @Composable
 private fun KeyValueRow(label: String, value: String, emphasise: Boolean = false) {

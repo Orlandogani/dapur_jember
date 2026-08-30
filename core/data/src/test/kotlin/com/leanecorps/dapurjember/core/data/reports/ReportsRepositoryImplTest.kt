@@ -5,11 +5,13 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
 import com.leanecorps.dapurjember.core.domain.order.PaymentMethod
+import com.leanecorps.dapurjember.core.testing.database.InventoryEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.OrderEntityFixtures
 import com.leanecorps.dapurjember.core.testing.database.seedOrderPrerequisites
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -88,5 +90,40 @@ class ReportsRepositoryImplTest {
             rows.map { it.name to it.gross.minor },
         )
         assertEquals(2, rows.first().quantity)
+    }
+
+    @Test
+    fun `COGS sums the SALE stock movements and drives gross margin`() = runTest {
+        db.ingredientDao().upsert(InventoryEntityFixtures.ingredient(id = "rice"))
+        // l1 (Nasi Goreng ×2) consumed 400g at 25/g = 10_000.
+        db.stockMovementDao().insert(
+            InventoryEntityFixtures.stockMovement(
+                id = "m1",
+                ingredientId = "rice",
+                qtyBaseDelta = -400.0,
+                reason = "SALE",
+                orderLineId = "l1",
+            ).copy(unitCostMinor = 25),
+        )
+
+        val summary = repo.dailySummary(day)
+        assertEquals(10_000L, summary.cogs.minor)
+        assertEquals(35_000L, summary.grossProfit.minor) // 45_000 revenue - 10_000
+        assertEquals(77.8, summary.grossMarginPercent!!, 0.05)
+
+        val nasiGoreng = repo.salesByItem(day).first { it.name == "Nasi Goreng Ayam" }
+        assertEquals(10_000L, nasiGoreng.cost.minor)
+        assertEquals(20_000L, nasiGoreng.profit.minor) // 30_000 gross - 10_000 cost
+        assertEquals(66.7, nasiGoreng.marginPercent!!, 0.05)
+    }
+
+    @Test
+    fun `with no recipes COGS is zero and margin is unknown rather than a misleading number`() = runTest {
+        val summary = repo.dailySummary(day)
+
+        assertEquals(0L, summary.cogs.minor)
+        assertEquals(45_000L, summary.grossProfit.minor)
+        assertEquals(0L, repo.salesByItem(day).first().cost.minor)
+        assertNull(repo.salesByItem("2026-01-01").firstOrNull()?.marginPercent)
     }
 }

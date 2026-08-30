@@ -21,6 +21,8 @@ data class DailySummary(
     val orderCount: Int,
     val covers: Int,
     val grossRevenue: Money,
+    /** Cost of goods sold — only counts items that have a recipe (FR-I4). */
+    val cogs: Money,
     val paymentMix: List<PaymentMixRow>,
     val discountCount: Int,
     val discountTotal: Money,
@@ -30,8 +32,30 @@ data class DailySummary(
     /** Gross revenue divided across paid orders; zero when nothing has been sold. */
     val averageTicket: Money
         get() = if (orderCount == 0) Money.ZERO else Money(grossRevenue.minor / orderCount)
+
+    val grossProfit: Money get() = grossRevenue - cogs
+
+    /**
+     * Gross margin as a percentage of revenue, or `null` when there is no revenue to divide
+     * by — a null renders as "—" rather than a misleading 0%.
+     */
+    val grossMarginPercent: Double?
+        get() = if (grossRevenue.isZero) null else grossProfit.minor * PERCENT / grossRevenue.minor
 }
 
 data class PaymentMixRow(val method: PaymentMethod, val amount: Money)
 
-data class ItemSales(val name: String, val quantity: Int, val gross: Money)
+data class ItemSales(
+    val name: String,
+    val quantity: Int,
+    val gross: Money,
+    /** Recipe cost of the quantity sold; zero for items with no recipe. */
+    val cost: Money,
+) {
+    val profit: Money get() = gross - cost
+
+    val marginPercent: Double?
+        get() = if (gross.isZero) null else profit.minor * PERCENT / gross.minor
+}
+
+private const val PERCENT = 100.0

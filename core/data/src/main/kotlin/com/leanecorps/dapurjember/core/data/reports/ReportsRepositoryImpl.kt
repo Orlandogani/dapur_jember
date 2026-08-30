@@ -21,6 +21,7 @@ internal class ReportsRepositoryImpl @Inject constructor(
             orderCount = totals.orderCount,
             covers = totals.covers,
             grossRevenue = Money(totals.revenueMinor),
+            cogs = Money(dao.cogsMinor(businessDay)),
             paymentMix = dao.paymentMix(businessDay).map {
                 PaymentMixRow(
                     method = runCatching { PaymentMethod.valueOf(it.method) }.getOrDefault(PaymentMethod.OTHER),
@@ -35,5 +36,7 @@ internal class ReportsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun salesByItem(businessDay: String): List<ItemSales> =
-        dao.salesByItem(businessDay).map { ItemSales(it.name, it.quantity, Money(it.grossMinor)) }
+        dao.salesByItem(businessDay).map {
+            ItemSales(name = it.name, quantity = it.quantity, gross = Money(it.grossMinor), cost = Money(it.costMinor))
+        }
 }

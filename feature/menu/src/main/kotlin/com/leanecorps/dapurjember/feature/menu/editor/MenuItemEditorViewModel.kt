@@ -32,12 +32,14 @@ class MenuItemEditorViewModel @Inject constructor(
 
     private val draft = MutableStateFlow<MenuItemDraft?>(null)
     private val recipe = MutableStateFlow<RecipeEditorUi?>(null)
+    private val variantCosts = MutableStateFlow<Map<String, Long>>(emptyMap())
     private val done = MutableStateFlow(false)
     private val minorUnits = MutableStateFlow(0)
 
-    private val editorInputs = combine(draft, recipe, done, minorUnits) { d, r, isDone, scale ->
-        EditorInputs(d, r, isDone, scale)
-    }
+    private val editorInputs =
+        combine(draft, recipe, variantCosts, done, minorUnits) { d, r, costs, isDone, scale ->
+            EditorInputs(d, r, costs, isDone, scale)
+        }
 
     val uiState: StateFlow<MenuItemEditorState> = combine(
         menuRepository.observeCategories(),
@@ -54,6 +56,7 @@ class MenuItemEditorViewModel @Inject constructor(
             currencyMinorUnits = inputs.minorUnits,
             draft = inputs.draft ?: MenuItemDraft(),
             recipe = inputs.recipe,
+            variantCosts = inputs.variantCosts,
             done = inputs.done,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), MenuItemEditorState())
@@ -71,7 +74,14 @@ class MenuItemEditorViewModel @Inject constructor(
                 detail?.toDraft(scale)?.copy(modifierGroupIds = attachedIds)
                     ?: MenuItemDraft(categoryId = firstCategory)
             }
+            refreshVariantCosts()
         }
+    }
+
+    /** Recipe cost per variant, for the live margin readout (FR-I4). */
+    private suspend fun refreshVariantCosts() {
+        val variants = draft.value?.variants.orEmpty()
+        variantCosts.value = variants.associate { it.id to inventory.costOfVariant(it.id).minor }
     }
 
     fun edit(transform: (MenuItemDraft) -> MenuItemDraft) {
@@ -147,6 +157,7 @@ class MenuItemEditorViewModel @Inject constructor(
                     },
             )
             recipe.value = null
+            refreshVariantCosts()
         }
     }
 
@@ -180,6 +191,7 @@ class MenuItemEditorViewModel @Inject constructor(
     private data class EditorInputs(
         val draft: MenuItemDraft?,
         val recipe: RecipeEditorUi?,
+        val variantCosts: Map<String, Long>,
         val done: Boolean,
         val minorUnits: Int,
     )

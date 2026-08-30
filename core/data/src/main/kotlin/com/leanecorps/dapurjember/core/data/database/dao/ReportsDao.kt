@@ -44,9 +44,30 @@ interface ReportsDao {
     )
     suspend fun voidedLineCount(businessDay: String): Int
 
+    /**
+     * Cost of goods sold for the day (FR-I4). Read straight off the SALE `stock_movement`
+     * rows the payment transaction wrote — each carries the ingredient's average cost *at the
+     * moment of sale*, so re-costing an ingredient later never rewrites history.
+     * `qty_base_delta` is negative for a sale, hence the leading minus.
+     */
+    @Query(
+        "SELECT COALESCE(CAST(ROUND(SUM(-m.qty_base_delta * m.unit_cost_minor)) AS INTEGER), 0) " +
+            "FROM stock_movement m " +
+            "INNER JOIN order_line l ON l.id = m.order_line_id " +
+            "INNER JOIN orders o ON o.id = l.order_id " +
+            "WHERE o.business_day = :businessDay AND m.reason = 'SALE' " +
+            "AND m.deleted_at IS NULL AND l.deleted_at IS NULL AND o.deleted_at IS NULL",
+    )
+    suspend fun cogsMinor(businessDay: String): Long
+
     @Query(
         "SELECT l.item_name_snapshot AS name, SUM(l.qty) AS quantity, " +
-            "SUM(l.qty * l.unit_price_snapshot_minor) AS grossMinor " +
+            "SUM(l.qty * l.unit_price_snapshot_minor) AS grossMinor, " +
+            "COALESCE(CAST(ROUND(SUM(" +
+            "  (SELECT COALESCE(SUM(-m.qty_base_delta * m.unit_cost_minor), 0) " +
+            "   FROM stock_movement m WHERE m.order_line_id = l.id " +
+            "   AND m.reason = 'SALE' AND m.deleted_at IS NULL)" +
+            ")) AS INTEGER), 0) AS costMinor " +
             "FROM order_line l INNER JOIN orders o ON o.id = l.order_id " +
             "WHERE o.business_day = :businessDay AND o.state IN ('PAID', 'CLOSED') " +
             "AND l.state = 'ACTIVE' AND l.deleted_at IS NULL AND o.deleted_at IS NULL " +
@@ -61,4 +82,4 @@ data class PaymentMixRow(val method: String, val amountMinor: Long)
 
 data class CountAndTotalRow(val count: Int, val totalMinor: Long)
 
-data class ItemSalesRow(val name: String, val quantity: Int, val grossMinor: Long)
+data class ItemSalesRow(val name: String, val quantity: Int, val grossMinor: Long, val costMinor: Long)

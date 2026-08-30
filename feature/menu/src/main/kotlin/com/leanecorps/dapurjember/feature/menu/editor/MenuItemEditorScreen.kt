@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leanecorps.dapurjember.core.designsystem.component.PosButton
 import com.leanecorps.dapurjember.core.designsystem.component.PosOutlinedButton
+import java.util.Locale
 
 @Composable
 fun MenuItemEditorScreen(
@@ -195,7 +196,17 @@ private fun EditorBody(
             )
             // Recipes attach to the variant (FR-I2/FR-M4) and only exist once the item is saved.
             if (!state.isNew) {
-                PosOutlinedButton(text = "Recipe…", onClick = { onOpenRecipe(variant.id) })
+                val margin = state.marginFor(variant)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PosOutlinedButton(text = "Recipe…", onClick = { onOpenRecipe(variant.id) })
+                    Text(
+                        text = margin.marginPercent
+                            ?.let { "cost ${margin.costMinor} · ${formatPercent(it)} margin" }
+                            ?: "no recipe",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                    )
+                }
             }
         }
         PosOutlinedButton(text = "Add variant", onClick = onAddVariant)
@@ -258,6 +269,9 @@ private fun VariantRow(
         }
     }
 }
+
+/** One decimal place, locale-independent so the number reads the same on every device. */
+private fun formatPercent(value: Double): String = String.format(Locale.ROOT, "%.1f%%", value)
 
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
