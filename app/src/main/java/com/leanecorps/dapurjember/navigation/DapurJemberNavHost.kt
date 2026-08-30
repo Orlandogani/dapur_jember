@@ -41,8 +41,10 @@ import com.leanecorps.dapurjember.feature.settings.navigation.SETUP_ROUTE
 import com.leanecorps.dapurjember.feature.settings.navigation.backupScreen
 import com.leanecorps.dapurjember.feature.settings.navigation.navigateToBackup
 import com.leanecorps.dapurjember.feature.settings.navigation.navigateToPrinters
+import com.leanecorps.dapurjember.feature.settings.navigation.navigateToStaff
 import com.leanecorps.dapurjember.feature.settings.navigation.printersScreen
 import com.leanecorps.dapurjember.feature.settings.navigation.setupWizardScreen
+import com.leanecorps.dapurjember.feature.settings.navigation.staffScreen
 import com.leanecorps.dapurjember.feature.shift.navigation.SHIFT_ROUTE
 import com.leanecorps.dapurjember.feature.shift.navigation.shiftScreen
 import kotlinx.coroutines.launch
@@ -115,8 +117,10 @@ fun DapurJemberNavHost(
         printersScreen(
             onBack = { navController.popBackStack() },
             onOpenBackup = { navController.navigateToBackup() },
+            onOpenStaff = { navController.navigateToStaff() },
         )
         backupScreen(onBack = { navController.popBackStack() })
+        staffScreen(onBack = { navController.popBackStack() })
         menuScreen(
             onEditItem = { itemId -> navController.navigateToMenuItemEditor(itemId) },
             onImportCsv = { navController.navigateToMenuCsvImport() },

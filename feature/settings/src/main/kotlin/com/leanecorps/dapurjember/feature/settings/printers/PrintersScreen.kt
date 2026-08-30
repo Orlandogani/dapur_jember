@@ -42,6 +42,7 @@ import com.leanecorps.dapurjember.core.domain.printing.PrinterRole
 fun PrintersScreen(
     onBack: () -> Unit,
     onOpenBackup: () -> Unit,
+    onOpenStaff: () -> Unit,
     viewModel: PrintersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -62,6 +63,7 @@ fun PrintersScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PosOutlinedButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
                 PosOutlinedButton(text = "Backup", onClick = onOpenBackup, modifier = Modifier.weight(1f))
+                PosOutlinedButton(text = "Staff", onClick = onOpenStaff, modifier = Modifier.weight(1f))
                 PosButton(text = "Add printer", onClick = viewModel::startAdd, modifier = Modifier.weight(1f))
             }
 

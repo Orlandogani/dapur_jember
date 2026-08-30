@@ -46,4 +46,18 @@ class FakeAuthRepository(
         addStaff(id, name, pin, role)
         return id
     }
+
+    override fun observeAllStaff(): Flow<List<Staff>> = records.map { list -> list.map { it.staff } }
+
+    override suspend fun updateStaff(staffId: String, name: String, role: StaffRole, actorStaffId: String) =
+        mutate(staffId) { it.copy(staff = it.staff.copy(name = name, role = role)) }
+
+    override suspend fun setStaffActive(staffId: String, active: Boolean, actorStaffId: String) =
+        mutate(staffId) { it.copy(staff = it.staff.copy(active = active)) }
+
+    override suspend fun resetPin(staffId: String, newPin: String, actorStaffId: String) =
+        mutate(staffId) { it.copy(pin = newPin) }
+
+    private inline fun mutate(staffId: String, transform: (Record) -> Record) =
+        records.update { list -> list.map { if (it.staff.id == staffId) transform(it) else it } }
 }

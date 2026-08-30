@@ -33,4 +33,19 @@ interface AuthRepository {
 
     /** Creates a staff member (setup wizard / staff management). Returns the new id. */
     suspend fun createStaff(name: String, role: StaffRole, pin: String): String
+
+    /** Every staff member including deactivated ones — the management screen (S29) shows both. */
+    fun observeAllStaff(): Flow<List<Staff>>
+
+    /** Renames / re-roles a staff member. Writes `audit_log` (CLAUDE.md rule 10). */
+    suspend fun updateStaff(staffId: String, name: String, role: StaffRole, actorStaffId: String)
+
+    /**
+     * Deactivates or reactivates a staff member. Staff are never hard-deleted — their name
+     * still has to resolve on historical orders and audit rows.
+     */
+    suspend fun setStaffActive(staffId: String, active: Boolean, actorStaffId: String)
+
+    /** Sets a new PIN without knowing the old one — an owner resetting a forgotten PIN. */
+    suspend fun resetPin(staffId: String, newPin: String, actorStaffId: String)
 }

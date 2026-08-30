@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.leanecorps.dapurjember.core.common.id.UuidV7
 import com.leanecorps.dapurjember.core.common.time.TimeProvider
+import com.leanecorps.dapurjember.core.data.database.AuditLogRecorder
 import com.leanecorps.dapurjember.core.data.database.ChangeLogRecorder
 import com.leanecorps.dapurjember.core.data.database.ChangeOp
 import com.leanecorps.dapurjember.core.data.database.DapurJemberDatabase
@@ -46,6 +47,7 @@ internal class AuthRepositoryImpl @Inject constructor(
     private val pinHasher: PinHasher,
     private val sessionRepository: SessionRepository,
     private val changeLog: ChangeLogRecorder,
+    private val auditLog: AuditLogRecorder,
     private val time: TimeProvider,
     private val deviceIds: DeviceIdProvider,
 ) : AuthRepository {
@@ -86,5 +88,47 @@ internal class AuthRepositoryImpl @Inject constructor(
         )
         changeLog.record("staff", id, ChangeOp.INSERT, now)
         id
+    }
+
+    override fun observeAllStaff(): Flow<List<Staff>> =
+        staffDao.observeAll().map { rows -> rows.map { it.toDomain() } }
+
+    override suspend fun updateStaff(
+        staffId: String,
+        name: String,
+        role: StaffRole,
+        actorStaffId: String,
+    ) = mutateStaff(staffId, actorStaffId, "UPDATE_STAFF") { existing, now ->
+        existing.copy(name = name, role = role.name, updatedAt = now, revision = existing.revision + 1)
+    }
+
+    override suspend fun setStaffActive(
+        staffId: String,
+        active: Boolean,
+        actorStaffId: String,
+    ) = mutateStaff(staffId, actorStaffId, if (active) "REACTIVATE_STAFF" else "DEACTIVATE_STAFF") { existing, now ->
+        existing.copy(active = active, updatedAt = now, revision = existing.revision + 1)
+    }
+
+    override suspend fun resetPin(
+        staffId: String,
+        newPin: String,
+        actorStaffId: String,
+    ) = mutateStaff(staffId, actorStaffId, "RESET_PIN") { existing, now ->
+        existing.copy(pinHash = pinHasher.hash(newPin), updatedAt = now, revision = existing.revision + 1)
+    }
+
+    /** Every staff change is privileged, so each one writes `change_log` *and* `audit_log`. */
+    private suspend inline fun mutateStaff(
+        staffId: String,
+        actorStaffId: String,
+        action: String,
+        crossinline transform: (StaffEntity, Long) -> StaffEntity,
+    ) = db.withTransaction {
+        val existing = staffDao.getById(staffId) ?: return@withTransaction
+        val now = time.nowMillis()
+        staffDao.upsert(transform(existing, now))
+        changeLog.record("staff", staffId, ChangeOp.UPDATE, now)
+        auditLog.record(actorStaffId, action, "staff", staffId, at = now)
     }
 }
