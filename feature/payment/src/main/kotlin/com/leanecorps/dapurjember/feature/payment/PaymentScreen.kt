@@ -39,15 +39,28 @@ fun PaymentScreen(
     PaymentScreen(
         state = state,
         onPay = viewModel::pay,
+        onSplit = viewModel::startSplit,
         onReprint = viewModel::reprintReceipt,
         onDone = onSettled,
     )
+    state.split?.let { split ->
+        SplitBillDialog(
+            state = state,
+            split = split,
+            onMode = viewModel::setSplitMode,
+            onWays = viewModel::setSplitWays,
+            onCycleLine = viewModel::cycleLineAssignment,
+            onPayPart = viewModel::paySplitPart,
+            onDismiss = viewModel::closeSplit,
+        )
+    }
 }
 
 @Composable
 internal fun PaymentScreen(
     state: PaymentUiState,
     onPay: (PaymentMethod, Long, Long) -> Unit,
+    onSplit: () -> Unit,
     onReprint: () -> Unit,
     onDone: () -> Unit,
 ) {
@@ -98,17 +111,26 @@ internal fun PaymentScreen(
             if (change > 0) AmountRow("Change", change, emphasise = true)
         }
 
-        PosButton(
-            text = "Take payment",
-            onClick = {
-                val a = amount.toLongOrNull() ?: 0L
-                val t = if (method == PaymentMethod.CASH) (tendered.toLongOrNull() ?: a) else a
-                onPay(method, a, t)
-                amount = ""
-                tendered = ""
-            },
-            enabled = (amount.toLongOrNull() ?: 0L) > 0,
-        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PosOutlinedButton(
+                text = "Split bill",
+                onClick = onSplit,
+                enabled = state.lines.isNotEmpty(),
+                modifier = Modifier.weight(1f),
+            )
+            PosButton(
+                text = "Take payment",
+                onClick = {
+                    val a = amount.toLongOrNull() ?: 0L
+                    val t = if (method == PaymentMethod.CASH) (tendered.toLongOrNull() ?: a) else a
+                    onPay(method, a, t)
+                    amount = ""
+                    tendered = ""
+                },
+                enabled = (amount.toLongOrNull() ?: 0L) > 0,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

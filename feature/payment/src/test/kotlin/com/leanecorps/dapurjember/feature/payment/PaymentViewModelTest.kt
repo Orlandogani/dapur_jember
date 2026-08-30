@@ -62,6 +62,62 @@ class PaymentViewModelTest {
     }
 
     @Test
+    fun `a three-way split paid with three different methods reconciles to the cent`() = runTest {
+        // Roadmap M2 exit criterion. 10_000 / 3 does not divide evenly, so this is the case
+        // where a naive implementation loses or invents a minor unit.
+        val vm = viewModel()
+        vm.uiState.test {
+            var state = awaitItem()
+            while (state.totalMinor == 0L) state = awaitItem()
+            assertEquals(10_000L, state.totalMinor)
+
+            vm.startSplit()
+            vm.setSplitWays(3)
+            var withSplit = expectMostRecentItem()
+            while (withSplit.split?.parts?.size != 3) withSplit = awaitItem()
+
+            val parts = withSplit.split!!.parts
+            assertEquals(listOf(3_334L, 3_333L, 3_333L), parts.map { it.amountMinor })
+            assertEquals(10_000L, withSplit.split!!.partsTotalMinor)
+
+            vm.paySplitPart(0, PaymentMethod.CASH)
+            vm.paySplitPart(1, PaymentMethod.CARD)
+            vm.paySplitPart(2, PaymentMethod.EWALLET)
+
+            var settled = awaitItem()
+            while (!settled.settled) settled = awaitItem()
+            assertEquals(0L, settled.balanceMinor)
+            assertEquals(10_000L, settled.paidMinor)
+            assertEquals(
+                listOf(PaymentMethod.CASH, PaymentMethod.CARD, PaymentMethod.EWALLET),
+                settled.payments.map { it.method },
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a part can only be taken once`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            var state = awaitItem()
+            while (state.totalMinor == 0L) state = awaitItem()
+
+            vm.startSplit()
+            var withSplit = expectMostRecentItem()
+            while (withSplit.split == null) withSplit = awaitItem()
+
+            vm.paySplitPart(0, PaymentMethod.CASH)
+            vm.paySplitPart(0, PaymentMethod.CASH) // ignored — already paid
+
+            var latest = expectMostRecentItem()
+            while (latest.paidMinor == 0L) latest = awaitItem()
+            assertEquals(5_000L, latest.paidMinor) // half of 10_000, not the whole thing twice
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `covering the balance settles the order to PAID`() = runTest {
         val vm = viewModel()
         vm.uiState.test {
